@@ -9,12 +9,7 @@ import torch
 from io import BytesIO
 
 from infer.audio import load_audio, wav2
-from infer.module.models import (
-    SynthesizerTrnMs256NSFsid,
-    SynthesizerTrnMs256NSFsid_nono,
-    SynthesizerTrnMs768NSFsid,
-    SynthesizerTrnMs768NSFsid_nono,
-)
+from infer.checkpoint import build_synthesizer, load_checkpoint, normalize_speaker_info
 from infer.vc.pipeline import Pipeline
 from infer.vc.utils import *
 from i18n.i18n import I18nAuto
@@ -32,30 +27,8 @@ def inference_status(title, state, detail=""):
     return "\n".join(lines)
 
 
-def normalized_speaker_info(checkpoint, n_spk):
-    speaker_info = []
-    seen = set()
-    for item in checkpoint.get("speaker_info", []):
-        try:
-            speaker_id = int(item["id"])
-            speaker_name = str(item["name"])
-        except (KeyError, TypeError, ValueError):
-            continue
-        if (
-            speaker_id < 0
-            or speaker_id >= n_spk
-            or not speaker_name
-            or speaker_id in seen
-        ):
-            continue
-        seen.add(speaker_id)
-        speaker_info.append({"id": speaker_id, "name": speaker_name})
-    speaker_info.sort(key=lambda item: item["id"])
-    return speaker_info
-
-
 def speaker_selector_updates(checkpoint, n_spk):
-    speaker_info = normalized_speaker_info(checkpoint, n_spk)
+    speaker_info = normalize_speaker_info(checkpoint.get("speaker_info"), n_spk)
     if speaker_info:
         choices = [
             i18n("说话人：%s（ID：%s）") % (item["name"], item["id"])
@@ -93,7 +66,6 @@ class VC:
         self.cpt = None
         self.version = None
         self.if_f0 = None
-        self.version = None
         self.hubert_model = None
 
         self.config = config
@@ -117,38 +89,13 @@ class VC:
         }
 
         if sid == "" or sid == []:
-            if (
-                self.hubert_model is not None
-            ):  # 考虑到轮询, 需要加个判断看是否 sid 是由有模型切换到无模型的
-                logger.info(i18n("清理模型缓存"))
-                clear_cuda_graph_cache(self.net_g)
-                clear_cuda_graph_cache(self.hubert_model)
-                del (self.net_g, self.n_spk, self.hubert_model, self.tgt_sr)  # ,cpt
-                self.hubert_model = self.net_g = self.n_spk = self.hubert_model = (
-                    self.tgt_sr
-                ) = None
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                ###楼下不这么折腾清理不干净
-                self.if_f0 = self.cpt.get("f0", 1)
-                self.version = self.cpt.get("version", "v1")
-                if self.version == "v1":
-                    if self.if_f0 == 1:
-                        self.net_g = SynthesizerTrnMs256NSFsid(
-                            *self.cpt["config"], is_half=self.config.is_half
-                        )
-                    else:
-                        self.net_g = SynthesizerTrnMs256NSFsid_nono(*self.cpt["config"])
-                elif self.version == "v2":
-                    if self.if_f0 == 1:
-                        self.net_g = SynthesizerTrnMs768NSFsid(
-                            *self.cpt["config"], is_half=self.config.is_half
-                        )
-                    else:
-                        self.net_g = SynthesizerTrnMs768NSFsid_nono(*self.cpt["config"])
-                del self.net_g, self.cpt
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
+            logger.info(i18n("清理模型缓存"))
+            clear_cuda_graph_cache(self.net_g)
+            clear_cuda_graph_cache(self.hubert_model)
+            self.net_g = self.hubert_model = self.pipeline = self.cpt = None
+            self.n_spk = self.tgt_sr = self.if_f0 = self.version = None
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             return (
                 {"visible": False, "__type__": "update"},
                 {"visible": False, "value": None, "__type__": "update"},
@@ -171,35 +118,18 @@ class VC:
         if self.net_g is not None:
             clear_cuda_graph_cache(self.net_g)
 
-        self.cpt = torch.load(person, map_location="cpu")
+        self.cpt = load_checkpoint(person)
+        # Release the previous GPU model before moving its replacement to the device.
+        self.net_g = None
+        self.net_g = build_synthesizer(
+            self.cpt, self.config.device, is_half=self.config.is_half
+        )
         self.tgt_sr = self.cpt["config"][-1]
-        self.cpt["config"][-3] = self.cpt["weight"]["emb_g.weight"].shape[0]  # n_spk
         self.if_f0 = self.cpt.get("f0", 1)
         self.version = self.cpt.get("version", "v1")
-
-        synthesizer_class = {
-            ("v1", 1): SynthesizerTrnMs256NSFsid,
-            ("v1", 0): SynthesizerTrnMs256NSFsid_nono,
-            ("v2", 1): SynthesizerTrnMs768NSFsid,
-            ("v2", 0): SynthesizerTrnMs768NSFsid_nono,
-        }
-
-        self.net_g = synthesizer_class.get(
-            (self.version, self.if_f0), SynthesizerTrnMs256NSFsid
-        )(*self.cpt["config"], is_half=self.config.is_half)
-
-        del self.net_g.enc_q
-
-        self.net_g.load_state_dict(self.cpt["weight"], strict=False)
-        self.net_g.eval().to(self.config.device)
-        if self.config.is_half:
-            self.net_g = self.net_g.half()
-        else:
-            self.net_g = self.net_g.float()
-
         self.pipeline = Pipeline(self.tgt_sr, self.config)
-        n_spk = self.cpt["config"][-3]
-        speaker_info = normalized_speaker_info(self.cpt, n_spk)
+        self.n_spk = n_spk = self.cpt["config"][-3]
+        speaker_info = normalize_speaker_info(self.cpt.get("speaker_info"), n_spk)
         speaker_slider_update, speaker_dropdown_update = speaker_selector_updates(
             self.cpt, n_spk
         )

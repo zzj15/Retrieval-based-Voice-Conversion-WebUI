@@ -1,4 +1,4 @@
-from pymss_core.modules.vocal_remover import (
+from tools.pymss_core.modules.vocal_remover import (
     BaseASPPNet,
     BaseNet,
     CascadedASPPNet,

@@ -1,8 +1,8 @@
 from importlib import import_module
 import sys
 
-_LOCAL_MODULE_PREFIX = "pymss.modules."
-_CORE_MODULE_PREFIX = "pymss_core.modules."
+_LOCAL_MODULE_PREFIX = "tools.pymss.modules."
+_CORE_MODULE_PREFIX = "tools.pymss_core.modules."
 
 
 def alias_module(local_name, core_name):

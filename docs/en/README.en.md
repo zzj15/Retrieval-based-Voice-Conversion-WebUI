@@ -88,6 +88,10 @@ python -m pip install --upgrade pip setuptools wheel
 | NVIDIA RTX 50 series | Install the CUDA 12.8 Torch pair first, then `requirments_cu128_py312.txt` |
 | NVIDIA GPUs before the RTX 50 series | Install the CUDA 11.8 Torch pair first, then `requirments_cu118_py312.txt` |
 
+The three hardware-specific files include `requirements/common.txt`, so shared version constraints have one source. The installation commands and hardware-specific Torch/ONNX versions stay the same.
+
+Source separation uses the bundled `tools.pymss` and `tools.pymss_core` packages. There is no need to install the PyPI `pymss` or `pymss-core` packages. The bundled code preserves DirectML compatibility changes; the published packages require Torch ≥ 2.7.1, which conflicts with DirectML's Torch 2.4.1. The CLI remains `python -m tools.pymss.cli`.
+
 #### CPU, AMD, Intel
 
 ```bash
@@ -213,6 +217,16 @@ python webui.py --noautoopen
 ```
 
 The default port is `7865`. Put personal `.pth` models in `assets/weights/` and `.index` files in `assets/indices/`.
+
+## Development checks
+
+After installing the dependencies for your hardware, run from the project root:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The tests use small models with random weights to check loading and basic synthesis for v1/v2 models with and without F0, model unloading, speaker metadata, bundled PyMSS imports and resource lookup. Pretrained model downloads are not required.
 
 ## Credits
 + [ContentVec](https://github.com/auspicious3000/contentvec/)

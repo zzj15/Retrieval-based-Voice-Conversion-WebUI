@@ -1,8 +1,8 @@
-from pymss.modules._core_shims import alias_submodules
+from tools.pymss.modules._core_shims import alias_submodules
 
 alias_submodules(
     __name__,
-    "pymss_core.modules.vocal_remover.uvr_lib_v5",
+    "tools.pymss_core.modules.vocal_remover.uvr_lib_v5",
     (
         "vr_network",
         "vr_network.layers",

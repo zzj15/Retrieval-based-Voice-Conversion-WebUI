@@ -6,7 +6,7 @@ import torch.nn as nn
 from numpy.typing import NDArray
 from typing import Dict
 
-from pymss_core import get_model_from_config as _core_get_model_from_config
+from tools.pymss_core import get_model_from_config as _core_get_model_from_config
 
 from .config import load_config
 from .progress import _ProgressContext

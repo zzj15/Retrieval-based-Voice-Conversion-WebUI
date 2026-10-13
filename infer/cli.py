@@ -14,6 +14,8 @@ warnings.filterwarnings(
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 os.chdir(PROJECT_ROOT)
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("weight_root", str(PROJECT_ROOT / "assets" / "weights"))
@@ -90,31 +92,11 @@ def resolve_model(value):
 
 
 def load_model_metadata(model_path):
-    import torch
+    from infer.checkpoint import get_speaker_count, load_checkpoint, normalize_speaker_info
 
-    checkpoint = torch.load(str(model_path), map_location="cpu")
-    weight = checkpoint.get("weight", {}) if isinstance(checkpoint, dict) else {}
-    embedding = weight.get("emb_g.weight")
-    if embedding is None:
-        raise ValueError("Model does not contain weight/emb_g.weight")
-    speaker_count = int(embedding.shape[0])
-    speakers = []
-    seen = set()
-    for item in checkpoint.get("speaker_info", []):
-        try:
-            speaker_id = int(item["id"])
-            speaker_name = str(item["name"])
-        except (KeyError, TypeError, ValueError):
-            continue
-        if (
-            0 <= speaker_id < speaker_count
-            and speaker_name
-            and speaker_id not in seen
-        ):
-            speakers.append({"id": speaker_id, "name": speaker_name})
-            seen.add(speaker_id)
-    speakers.sort(key=lambda item: item["id"])
-    return speaker_count, speakers
+    checkpoint = load_checkpoint(model_path)
+    speaker_count = get_speaker_count(checkpoint)
+    return speaker_count, normalize_speaker_info(checkpoint.get("speaker_info"), speaker_count)
 
 
 def select_speaker(speaker_count, speakers, requested_id):

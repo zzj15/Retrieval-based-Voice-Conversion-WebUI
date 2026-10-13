@@ -7,25 +7,10 @@ from collections import OrderedDict
 import torch
 
 from i18n.i18n import I18nAuto
+from infer.checkpoint import normalize_speaker_info
 from tools.file_io import read_text
 
 i18n = I18nAuto()
-
-
-def normalize_speaker_info(speaker_info):
-    result = []
-    seen = set()
-    for item in speaker_info or []:
-        try:
-            speaker_id = int(item["id"])
-            speaker_name = str(item["name"])
-        except (KeyError, TypeError, ValueError):
-            continue
-        if speaker_id < 0 or speaker_id > 109 or not speaker_name or speaker_id in seen:
-            continue
-        seen.add(speaker_id)
-        result.append({"id": speaker_id, "name": speaker_name})
-    return sorted(result, key=lambda item: item["id"])
 
 
 def savee(ckpt, sr, if_f0, name, epoch, version, hps):
