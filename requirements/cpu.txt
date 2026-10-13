@@ -1,0 +1,18 @@
+# Python 3.12 x64 / Windows DirectML or Linux CPU.
+--index-url https://mirrors.pku.edu.cn/pypi/simple
+--extra-index-url https://mirrors.nju.edu.cn/pytorch/whl/cpu
+--extra-index-url https://pypi.org/simple
+
+-r core.txt
+-c cpu-constraints.txt
+
+# torch-directml 0.2.5 is built against this exact PyTorch family.
+torch==2.4.1+cpu
+torchaudio==2.4.1+cpu
+torchvision==0.19.1+cpu
+torch-directml==0.2.5.dev240914; platform_system == "Windows"
+
+# Providers share a module name; install only the platform's provider.
+onnxruntime-directml>=1.24.4,<2; platform_system == "Windows"
+onnxruntime>=1.24.4,<2; platform_system != "Windows"
+coloredlogs>=15.0,<16

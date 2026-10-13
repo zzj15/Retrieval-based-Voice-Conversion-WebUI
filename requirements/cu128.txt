@@ -1,0 +1,10 @@
+# Python 3.12 x64 / NVIDIA CUDA 12.8.
+# First install torch==2.7.1+cu128 and torchaudio==2.7.1+cu128 (see README).
+--index-url https://mirrors.pku.edu.cn/pypi/simple
+
+-r core.txt
+
+# ONNX Runtime 1.19.x uses the CUDA 12 / cuDNN 9 provider ABI.
+onnxruntime-gpu>=1.19.2,<1.20
+coloredlogs>=15.0,<16
+PyYAML>=6.0.1

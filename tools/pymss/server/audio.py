@@ -198,27 +198,11 @@ def f32le_bytes(audio):
 
 
 def _safe_slug(value):
-    """Implement the safe slug helper.
-
-    Args:
-        value (Any): Value value.
-
-    Returns:
-        Any: Computed result."""
     slug = re.sub(r"[^a-z0-9_-]+", "-", str(value).lower()).strip("-._")
     return slug or "stem"
 
 
 def _filename(index, stem, output_audio_format):
-    """Implement the filename helper.
-
-    Args:
-        index (Any): Index value.
-        stem (str): Stem value.
-        output_audio_format (str): Output audio format value.
-
-    Returns:
-        Any: Computed result."""
     extension = "f32le" if output_audio_format == "pcm_f32le" else output_audio_format
     return f"{index:04d}-{_safe_slug(stem)}.{extension}"
 

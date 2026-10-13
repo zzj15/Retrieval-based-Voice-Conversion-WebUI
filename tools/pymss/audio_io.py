@@ -6,14 +6,6 @@ import numpy as np
 
 
 def _frame_to_audio(frame, mono):
-    """Implement the frame to audio helper.
-
-    Args:
-        frame (Any): Frame value.
-        mono (bool): Mono value.
-
-    Returns:
-        Any: Computed result."""
     audio = frame.to_ndarray()
     audio = audio[None, :] if audio.ndim == 1 else audio
     return (audio.mean(axis=0, keepdims=True) if mono and audio.shape[0] > 1 else audio).astype(np.float32, copy=False)
@@ -170,13 +162,6 @@ def load_audio(path, sr=None, mono=False, offset=0.0, duration=None):
 
 
 def _bitrate_to_int(value):
-    """Implement the bitrate to int helper.
-
-    Args:
-        value (Any): Value value.
-
-    Returns:
-        Any: Computed result."""
     if value is None:
         return None
     if isinstance(value, int):

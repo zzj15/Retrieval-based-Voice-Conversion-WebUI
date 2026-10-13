@@ -1,0 +1,5 @@
+# Optional FCPE pitch extraction; included by WebUI and desktop realtime.
+-r core.txt
+torchfcpe>=0.0.4,<0.1
+einops>=0.8.0,<1
+local-attention>=1.11.0,<2

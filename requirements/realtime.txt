@@ -1,0 +1,4 @@
+# Desktop realtime GUI and audio devices.
+-r fcpe.txt
+FreeSimpleGUI>=5.1.0,<5.2
+sounddevice>=0.5.0,<1

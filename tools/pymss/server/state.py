@@ -139,14 +139,6 @@ class ServerState:
 
 
 def _section(config, section):
-    """Implement the section helper.
-
-    Args:
-        config (AttrDict | dict): Loaded pymss configuration.
-        section (Mapping | None): Section value.
-
-    Returns:
-        Any: Computed result."""
     if config is None:
         return None
     if isinstance(config, dict):
@@ -155,14 +147,6 @@ def _section(config, section):
 
 
 def _contains(section, key):
-    """Implement the contains helper.
-
-    Args:
-        section (Mapping | None): Section value.
-        key (str): Key value.
-
-    Returns:
-        Any: Computed result."""
     if section is None:
         return False
     if isinstance(section, dict):
@@ -233,13 +217,6 @@ def validate_inference_params(params, config, model_type):
 
 
 def _preload_config(resolved):
-    """Implement the preload config helper.
-
-    Args:
-        resolved (Any): Resolved value.
-
-    Returns:
-        Any: Computed result."""
     model_type = resolved["model_type"]
     if model_type == "vr":
         return None

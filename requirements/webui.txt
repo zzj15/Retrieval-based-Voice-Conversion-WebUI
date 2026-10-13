@@ -1,0 +1,21 @@
+# WebUI exposes inference, FCPE, training and bundled source separation.
+-r train.txt
+-r fcpe.txt
+
+# Gradio 3.14 imports pkg_resources; Setuptools 81+ removes it.
+setuptools>=75.0,<81
+wheel>=0.45,<1
+
+# Preserve the Gradio 3.14 API and its FastAPI/Pydantic compatibility window.
+gradio>=3.14.0,<3.15
+altair>=4.2.0,<5
+anyio>=3.6.2,<4
+fastapi>=0.88.0,<0.100
+httpx>=0.23.0,<0.24
+markdown-it-py>=2.2.0,<3
+mdit-py-plugins>=0.3.3,<0.4
+pydantic>=1.10.13,<2
+pyparsing>=3.0.9,<3.1
+starlette>=0.22.0,<0.28
+uvicorn>=0.20.0,<0.23
+websockets>=10.4,<11

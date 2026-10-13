@@ -41,13 +41,6 @@ class DownloadValidationError(DownloadError):
 
 
 def _quote_path(path):
-    """Implement the quote path helper.
-
-    Args:
-        path (str | os.PathLike): File system path.
-
-    Returns:
-        Any: Computed result."""
     return urllib.parse.quote(path, safe="/")
 
 
@@ -99,13 +92,6 @@ def fetch_modelscope_file_index(timeout=30):
 
 
 def _sha256(path):
-    """Implement the sha256 helper.
-
-    Args:
-        path (str | os.PathLike): File system path.
-
-    Returns:
-        Any: Computed result."""
     digest = hashlib.sha256()
     with open(path, "rb") as f:
         while True:
@@ -117,14 +103,6 @@ def _sha256(path):
 
 
 def _expected_size_and_hash(relpath, source_index):
-    """Implement the expected size and hash helper.
-
-    Args:
-        relpath (str): Relpath value.
-        source_index (Any): Source index value.
-
-    Returns:
-        Any: Computed result."""
     if not source_index:
         return None, ""
     item = source_index.get(relpath, {})
@@ -134,15 +112,6 @@ def _expected_size_and_hash(relpath, source_index):
 
 
 def _already_valid(path, expected_size=None, expected_sha256=""):
-    """Implement the already valid helper.
-
-    Args:
-        path (str | os.PathLike): File system path.
-        expected_size (Any, optional): Expected size value. Defaults to None.
-        expected_sha256 (Any, optional): Expected sha256 value. Defaults to ''.
-
-    Returns:
-        Any: Computed result."""
     if not path.is_file():
         return False
     if expected_size is not None and path.stat().st_size != expected_size:
@@ -153,13 +122,6 @@ def _already_valid(path, expected_size=None, expected_sha256=""):
 
 
 def _cleanup_partial_download(tmp):
-    """Implement the cleanup partial download helper.
-
-    Args:
-        tmp (Any): Tmp value.
-
-    Returns:
-        None: This callable completes for its side effects."""
     for path in (tmp, Path(str(tmp) + ".aria2")):
         try:
             path.unlink()

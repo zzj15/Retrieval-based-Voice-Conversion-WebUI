@@ -41,13 +41,6 @@ def _parse_key_value(values):
 
 
 def cmd_list(args):
-    """Implement the cmd list helper.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-        Any: Computed result."""
     rows = list_models(category=args.category, supported=None if args.all else True)
     if args.json:
         print(json.dumps([item.__dict__ for item in rows], ensure_ascii=False, indent=2))
@@ -60,13 +53,6 @@ def cmd_list(args):
 
 
 def cmd_info(args):
-    """Implement the cmd info helper.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-        Any: Computed result."""
     resolved = resolve_model(args.model, model_dir=args.model_dir, require_supported=False, require_exists=False)
     entry = resolved["entry"]
     data = {
@@ -87,13 +73,6 @@ def cmd_info(args):
 
 
 def cmd_download(args):
-    """Implement the cmd download helper.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-        Any: Computed result."""
     if args.model == "all":
         results = download_all(
             model_dir=args.model_dir,
@@ -153,13 +132,6 @@ def _ensure_model_files(args):
 
 
 def cmd_infer(args):
-    """Implement the cmd infer helper.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-        Any: Computed result."""
     _ensure_model_files(args)
     logger = get_separation_logger()
     inference_progress = _CliInferenceProgress()
@@ -272,13 +244,6 @@ def cmd_workflow_run(args):
 
 
 def cmd_serve(args):
-    """Implement the cmd serve helper.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-        Any: Computed result."""
     from .server import ServerConfig, run_server
 
     config = ServerConfig(

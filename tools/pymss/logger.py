@@ -11,13 +11,6 @@ LOG_ENV_NAME = "PYMSS_LOG_FILE"
 
 
 def _safe_relpath(pathname):
-    """Implement the safe relpath helper.
-
-    Args:
-        pathname (str): Pathname value.
-
-    Returns:
-        Any: Computed result."""
     if not pathname:
         return pathname
 
@@ -140,13 +133,6 @@ class FileFormatter(logging.Formatter):
 
 
 def _supports_color(stream):
-    """Implement the supports color helper.
-
-    Args:
-        stream (Any): Stream value.
-
-    Returns:
-        Any: Computed result."""
     if os.environ.get("NO_COLOR"):
         return False
     if os.environ.get("PYMSS_FORCE_COLOR"):
@@ -155,13 +141,6 @@ def _supports_color(stream):
 
 
 def _compress_log_file(path):
-    """Implement the compress log file helper.
-
-    Args:
-        path (str | os.PathLike): File system path.
-
-    Returns:
-        None: This callable completes for its side effects."""
     gz_path = f"{path}.gz"
     if os.path.exists(gz_path):
         return

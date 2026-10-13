@@ -1,0 +1,16 @@
+# Python 3.12 CLI inference and bundled source separation.
+# Combine with cpu.txt, cu118.txt or cu128.txt for Torch and the ONNX provider.
+packaging>=24.0
+av>=15.1.0,<16
+faiss-cpu>=1.13.0,<2
+ffmpeg-python>=0.2.0,<1
+librosa>=0.10.2,<0.11
+networkx>=3.2.0,<4
+numpy>=1.26.4,<2
+praat-parselmouth>=0.4.5,<1
+scikit-learn>=1.6.0,<2
+scipy>=1.13.1,<2
+soundfile>=0.13.0,<1
+tqdm>=4.67.0,<5
+transformers>=4.49.0,<4.50
+PyYAML>=6.0

@@ -4,29 +4,5 @@
 #   python -m pip install -r requirments_cpu_py312.txt
 # Windows portable runtime users may replace `python` with `runtime\python.exe -I`.
 #
-# torch-directml 0.2.5 is built against the PyTorch 2.4.1 family.  These exact
-# CPU versions are therefore intentional. DirectML is installed only on Windows;
-# Linux AMD/Intel systems use the CPU execution path.
-
---index-url https://mirrors.pku.edu.cn/pypi/simple
---extra-index-url https://mirrors.nju.edu.cn/pytorch/whl/cpu
---extra-index-url https://pypi.org/simple
-
-torch==2.4.1+cpu
-torchaudio==2.4.1+cpu
-torchvision==0.19.1+cpu
-torch-directml==0.2.5.dev240914; platform_system == "Windows"
-
+-r requirements/cpu.txt
 -r requirements/common.txt
-
-# hyper-connections 0.4.3+ requires Torch 2.5+, while DirectML currently pins
-# Torch 2.4.1.  0.4.2 is the newest compatible generation.
-hyper-connections>=0.1.8,<0.4.3
-
-# ONNX Runtime providers are platform-specific because all variants expose the
-# same Python module. Windows uses DirectML; Linux uses the CPU provider.
-onnxruntime-directml>=1.24.4,<2; platform_system == "Windows"
-onnxruntime>=1.24.4,<2; platform_system != "Windows"
-coloredlogs>=15.0,<16
-
-PyYAML>=6.0

@@ -1,0 +1,14 @@
+# Python 3.12 x64 / NVIDIA CUDA 11.8.
+# First install torch==2.7.1+cu118 and torchaudio==2.7.1+cu118 (see README).
+--index-url https://mirrors.pku.edu.cn/pypi/simple
+
+-r core.txt
+
+# ONNX Runtime 1.18.x requires CUDA 11 / cuDNN 8, including on Windows.
+onnxruntime-gpu>=1.18.0,<1.19
+nvidia-cudnn-cu11==8.9.5.29
+nvidia-cublas-cu11==11.11.3.6
+nvidia-cuda-runtime-cu11==11.8.89
+nvidia-cuda-nvrtc-cu11==11.8.89
+nvidia-cufft-cu11==10.9.0.58
+PyYAML>=6.0.1
