@@ -88,7 +88,7 @@ python -m pip install --upgrade pip setuptools wheel
 | NVIDIA RTX 50 series | Install the CUDA 12.8 Torch pair first, then `requirments_cu128_py312.txt` |
 | NVIDIA GPUs before the RTX 50 series | Install the CUDA 11.8 Torch pair first, then `requirments_cu118_py312.txt` |
 
-The three hardware-specific files include `requirements/common.txt`, so shared version constraints have one source. The installation commands and hardware-specific Torch/ONNX versions stay the same.
+The files above install all features: each includes `requirements/cpu.txt`, `cu118.txt` or `cu128.txt`, then `requirements/common.txt` aggregates the feature dependencies. Shared version constraints have one source.
 
 Source separation uses the bundled `tools.pymss` and `tools.pymss_core` packages. There is no need to install the PyPI `pymss` or `pymss-core` packages. The bundled code preserves DirectML compatibility changes; the published packages require Torch ≥ 2.7.1, which conflicts with DirectML's Torch 2.4.1. The CLI remains `python -m tools.pymss.cli`.
 
@@ -123,9 +123,34 @@ python -c "import torch; print('torch:', torch.__version__); print('cuda:', torc
 ```
 
 
+#### Install only the features you need (optional)
+
+For CLI inference or source separation, install just the matching hardware base. For example, on CPU:
+
+```bash
+python -m pip install -r requirements/cpu.txt
+```
+
+The base includes `requirements/core.txt` and supports `python infer/cli.py` (PM/RMVPE) and `python -m tools.pymss.cli infer`. Add feature groups as needed:
+
+| Use | Additional requirements file |
+| --- | --- |
+| CLI training | `requirements/train.txt` |
+| WebUI, including training and FCPE | `requirements/webui.txt` |
+| Desktop realtime conversion, including FCPE | `requirements/realtime.txt` |
+| FCPE inference API only | `requirements/fcpe.txt` |
+
+For example, to install the CPU WebUI:
+
+```bash
+python -m pip install -r requirements/cpu.txt -r requirements/webui.txt
+```
+
+For NVIDIA, first install the matching Torch/Torchaudio pair shown above, then replace `cpu.txt` with `cu118.txt` or `cu128.txt`. Include the hardware file when adding or upgrading features to apply its compatibility constraints. The standalone PyMSS `serve` command also needs the WebUI group. None of these profiles requires OpenCV. Prepare FFmpeg, model files and runtime directories as described below.
+
 ### Package indexes
 
-The three `requirments_*.txt` files define their package indexes at the top. Keep the default mirrors in mainland China. To use official indexes, replace only `--index-url` and `--extra-index-url`; keep package versions, CUDA suffixes, and the two-stage order unchanged.
+Package indexes are defined in `requirements/cpu.txt`, `cu118.txt` and `cu128.txt`, shared by full and minimal installs. Keep the default mirrors in mainland China. To use official indexes, replace only `--index-url` and `--extra-index-url`; keep package versions, CUDA suffixes, and the two-stage order unchanged.
 
 | Default mirror | Official source |
 | --- | --- |

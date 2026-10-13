@@ -20,53 +20,20 @@ ENSEMBLE_ALGORITHMS = (
 
 
 def _as_channel_first(audio):
-    """Implement the as channel first helper.
-
-    Args:
-        audio (np.ndarray): Audio samples.
-
-    Returns:
-        Any: Computed result."""
     audio = np.asarray(audio, dtype=np.float32)
     return audio[None, :] if audio.ndim == 1 else audio
 
 
 def stft(wave, nfft=2048, hl=1024):
-    """Implement the stft helper.
-
-    Args:
-        wave (np.ndarray): Wave value.
-        nfft (Any, optional): Nfft value. Defaults to 2048.
-        hl (Any, optional): Hl value. Defaults to 1024.
-
-    Returns:
-        Any: Computed result."""
     wave = _as_channel_first(wave)
     return np.asfortranarray([librosa.stft(np.asfortranarray(channel), n_fft=nfft, hop_length=hl) for channel in wave])
 
 
 def istft(spec, hl=1024, length=None):
-    """Implement the istft helper.
-
-    Args:
-        spec (np.ndarray): Spec value.
-        hl (Any, optional): Hl value. Defaults to 1024.
-        length (Any, optional): Length value. Defaults to None.
-
-    Returns:
-        Any: Computed result."""
     return np.asfortranarray([librosa.istft(np.asfortranarray(channel), hop_length=hl, length=length) for channel in spec])
 
 
 def absmax(a, *, axis):
-    """Implement the absmax helper.
-
-    Args:
-        a (np.ndarray): A value.
-        axis (Any): Axis value.
-
-    Returns:
-        Any: Computed result."""
     dims = list(a.shape)
     dims.pop(axis)
     indices = np.ogrid[tuple(slice(0, d) for d in dims)]
@@ -76,16 +43,6 @@ def absmax(a, *, axis):
 
 
 def lambda_min(arr, axis=None, key=None, keepdims=False):
-    """Implement the lambda min helper.
-
-    Args:
-        arr (np.ndarray): Arr value.
-        axis (Any, optional): Axis value. Defaults to None.
-        key (str, optional): Key value. Defaults to None.
-        keepdims (Any, optional): Keepdims value. Defaults to False.
-
-    Returns:
-        Any: Computed result."""
     idxs = np.argmin(key(arr), axis)
     if axis is None:
         return arr.flatten()[idxs]
@@ -95,16 +52,6 @@ def lambda_min(arr, axis=None, key=None, keepdims=False):
 
 
 def lambda_max(arr, axis=None, key=None, keepdims=False):
-    """Implement the lambda max helper.
-
-    Args:
-        arr (np.ndarray): Arr value.
-        axis (Any, optional): Axis value. Defaults to None.
-        key (str, optional): Key value. Defaults to None.
-        keepdims (Any, optional): Keepdims value. Defaults to False.
-
-    Returns:
-        Any: Computed result."""
     idxs = np.argmax(key(arr), axis)
     if axis is None:
         return arr.flatten()[idxs]

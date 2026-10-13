@@ -37,13 +37,6 @@ except ImportError as exc:  # pragma: no cover - exercised only without optional
 
 
 def _error_response(exc):
-    """Implement the error response helper.
-
-    Args:
-        exc (Any): Exc value.
-
-    Returns:
-        Any: Computed result."""
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -74,13 +67,6 @@ def _check_auth(request, state):
 
 
 def _content_type(request):
-    """Implement the content type helper.
-
-    Args:
-        request (Request): Incoming FastAPI request.
-
-    Returns:
-        Any: Computed result."""
     return request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
 
 
@@ -116,26 +102,12 @@ async def _read_body(request, state):
 
 
 def _require_request_model(model):
-    """Implement the require request model helper.
-
-    Args:
-        model (str): Model value.
-
-    Returns:
-        Any: Computed result."""
     if not model:
         raise APIError(400, "invalid_model", "The 'model' field is required.", param="model")
     return str(model)
 
 
 def _require_loaded_for_inference(state):
-    """Implement the require loaded for inference helper.
-
-    Args:
-        state (Any): State value.
-
-    Returns:
-        Any: Computed result."""
     if state.model_loading:
         raise APIError(409, "model_operation_in_progress", "A model load or switch operation is in progress.")
     loaded = state.loaded
@@ -145,14 +117,6 @@ def _require_loaded_for_inference(state):
 
 
 def _require_model_id(loaded, model):
-    """Implement the require model id helper.
-
-    Args:
-        loaded (LoadedModel): Loaded value.
-        model (str): Model value.
-
-    Returns:
-        Any: Computed result."""
     model = _require_request_model(model)
     if not loaded.is_model_id(model):
         raise APIError(404, "model_not_found", f"Model {model!r} is not loaded by this process.", param="model")
@@ -183,28 +147,12 @@ def _validate_download_source(source, endpoint, *, source_required=False):
 
 
 def _effective_download_source(state, source, endpoint):
-    """Implement the effective download source helper.
-
-    Args:
-        state (Any): State value.
-        source (str): Download source name.
-        endpoint (str | None): Optional custom download endpoint.
-
-    Returns:
-        Any: Computed result."""
     effective_source = source or state.config.source
     effective_endpoint = state.config.endpoint if endpoint is DEFAULT_ENDPOINT else endpoint
     return effective_source, effective_endpoint
 
 
 def _query_endpoint(query_params):
-    """Implement the query endpoint helper.
-
-    Args:
-        query_params (Any): Query params value.
-
-    Returns:
-        Any: Computed result."""
     return query_params["endpoint"] if "endpoint" in query_params else DEFAULT_ENDPOINT
 
 
@@ -593,13 +541,6 @@ def _download_source_response(state):
 
 
 def _server_info_response(state):
-    """Implement the server info response helper.
-
-    Args:
-        state (Any): State value.
-
-    Returns:
-        Any: Computed result."""
     return {
         "object": "server.info",
         "webui": {
@@ -667,25 +608,10 @@ def create_app(config):
 
     @app.exception_handler(APIError)
     async def handle_api_error(_request, exc):
-        """Implement the handle api error helper.
-
-        Args:
-            _request (Any):  request value.
-            exc (Any): Exc value.
-
-        Returns:
-            Any: Computed result."""
         return _error_response(exc)
 
     @app.get("/health")
     async def health():
-        """Implement the health helper.
-
-        Args:
-            None: This callable does not accept user-provided arguments.
-
-        Returns:
-            Any: Computed result."""
         loaded = state.loaded
         return {
             "status": "ok",
@@ -733,13 +659,6 @@ def create_app(config):
 
     @app.get("/v1/catalog/models")
     async def list_catalog_models(request: Request):
-        """Implement the list catalog models helper.
-
-        Args:
-            request (Request): Incoming FastAPI request.
-
-        Returns:
-            Any: Computed result."""
         _check_auth(request, state)
         try:
             supported = parse_supported_filter(request.query_params.get("supported"))
@@ -929,13 +848,6 @@ def create_app(config):
 
 
 def _server_display_host(host):
-    """Implement the server display host helper.
-
-    Args:
-        host (str): Host value.
-
-    Returns:
-        Any: Computed result."""
     if host in {"0.0.0.0", "::"}:
         return "127.0.0.1"
     if ":" in host and not host.startswith("["):
@@ -944,26 +856,11 @@ def _server_display_host(host):
 
 
 def _server_url(config, path="/"):
-    """Implement the server url helper.
-
-    Args:
-        config (AttrDict | dict): Loaded pymss configuration.
-        path (str | os.PathLike, optional): File system path. Defaults to '/'.
-
-    Returns:
-        Any: Computed result."""
     normalized_path = path if path.startswith("/") else f"/{path}"
     return f"http://{_server_display_host(config.host)}:{config.port}{normalized_path}"
 
 
 def _log_webui_url(config):
-    """Implement the log webui url helper.
-
-    Args:
-        config (AttrDict | dict): Loaded pymss configuration.
-
-    Returns:
-        None: This callable completes for its side effects."""
     if not config.webui:
         return
     logging.getLogger("uvicorn.error").info("WebUI available at %s", _server_url(config, "/ui/"))
@@ -984,13 +881,6 @@ def _create_uvicorn_server(uvicorn, app, config):
         """Represent PymssUvicornServer."""
 
         def _log_started_message(self, listeners):
-            """Implement the log started message helper.
-
-            Args:
-                listeners (Any): Listeners value.
-
-            Returns:
-                None: This callable completes for its side effects."""
             super()._log_started_message(listeners)
             _log_webui_url(config)
 

@@ -87,7 +87,7 @@ python -m pip install --upgrade pip setuptools wheel
 | NVIDIA RTX 50 系 | 先安装 CUDA 12.8 版 Torch，再安装 `requirments_cu128_py312.txt` |
 | NVIDIA RTX 50 系以前 | 先安装 CUDA 11.8 版 Torch，再安装 `requirments_cu118_py312.txt` |
 
-三个硬件依赖文件共同引用 `requirements/common.txt`，公共版本约束只需维护一份；安装命令与 Torch/ONNX 的硬件版本选择保持不变。
+以上文件安装完整功能：各自引用 `requirements/cpu.txt`、`cu118.txt` 或 `cu128.txt`，再通过 `requirements/common.txt` 汇总功能依赖。公共版本约束只需维护一份。
 
 人声分离统一使用仓库内的 `tools.pymss` 和 `tools.pymss_core`，无需额外安装 PyPI 的 `pymss` 或 `pymss-core`。内置版本保留了 DirectML 等兼容修改；PyPI 发布版要求 Torch ≥ 2.7.1，与当前 DirectML 的 Torch 2.4.1 不兼容。命令行入口仍为 `python -m tools.pymss.cli`。
 
@@ -122,9 +122,34 @@ python -c "import torch; print('torch:', torch.__version__); print('cuda:', torc
 ```
 
 
+#### 按用途精简安装（可选）
+
+只用命令行推理或人声分离时，可以仅安装对应硬件的基础依赖。例如 CPU：
+
+```bash
+python -m pip install -r requirements/cpu.txt
+```
+
+基础依赖包含 `requirements/core.txt`，支持 `python infer/cli.py`（PM/RMVPE）和 `python -m tools.pymss.cli infer`。按需添加功能组：
+
+| 用途 | 额外依赖文件 |
+| --- | --- |
+| 命令行训练 | `requirements/train.txt` |
+| WebUI（包含训练和 FCPE） | `requirements/webui.txt` |
+| 桌面实时变声（包含 FCPE） | `requirements/realtime.txt` |
+| 单独使用 FCPE 推理 API | `requirements/fcpe.txt` |
+
+例如只安装 CPU WebUI：
+
+```bash
+python -m pip install -r requirements/cpu.txt -r requirements/webui.txt
+```
+
+NVIDIA 仍需先按上文安装匹配的 Torch/Torchaudio，再将命令中的 `cpu.txt` 换成 `cu118.txt` 或 `cu128.txt`。升级或补装功能时也应同时指定硬件文件，以应用对应的兼容约束。PyMSS 的独立 `serve` 入口需要 WebUI 依赖组。以上方案均无需 OpenCV；FFmpeg、模型文件和运行目录仍按下文准备。
+
 ### 修改下载源
 
-三个 `requirments_*.txt` 顶部已经包含下载源。中国大陆用户可保留默认镜像；需要使用官方源时，只替换 `--index-url` 和 `--extra-index-url`，保留包版本、CUDA 后缀和两阶段顺序。
+下载源定义在 `requirements/cpu.txt`、`cu118.txt` 和 `cu128.txt` 中，完整安装与精简安装共用。中国大陆用户可保留默认镜像；需要使用官方源时，只替换 `--index-url` 和 `--extra-index-url`，保留包版本、CUDA 后缀和两阶段顺序。
 
 | Default mirror | Official source |
 | --- | --- |

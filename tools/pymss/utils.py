@@ -61,14 +61,6 @@ def clear_mlx_cache():
 
 
 def _getWindowingArray(window_size, fade_size):
-    """Implement the getWindowingArray helper.
-
-    Args:
-        window_size (Any): Window size value.
-        fade_size (Any): Fade size value.
-
-    Returns:
-        Any: Computed result."""
     if fade_size <= 0:
         return torch.ones(window_size)
 
@@ -95,13 +87,6 @@ def _build_chunk_plan(total_length, chunk_size, step, fade_size):
     normal_window = _getWindowingArray(chunk_size, fade_size)
 
     def window_for(start):
-        """Implement the window for helper.
-
-        Args:
-            start (Any): Start value.
-
-        Returns:
-            Any: Computed result."""
         length = min(chunk_size, total_length - start)
         if start != 0 and start + length < total_length:
             return normal_window
@@ -131,29 +116,10 @@ def _get_inference_step(config, chunk_size):
 
 
 def _complete_chunk_count(total_length, chunk_size, step):
-    """Implement the complete chunk count helper.
-
-    Args:
-        total_length (Any): Total length value.
-        chunk_size (Any): Chunk size value.
-        step (Any): Step value.
-
-    Returns:
-        Any: Computed result."""
     return 0 if total_length < chunk_size else (total_length - chunk_size) // step + 1
 
 
 def _fold_windows(counter, windows, step, start_offset=0):
-    """Implement the fold windows helper.
-
-    Args:
-        counter (Any): Counter value.
-        windows (Any): Windows value.
-        step (Any): Step value.
-        start_offset (Any, optional): Start offset value. Defaults to 0.
-
-    Returns:
-        None: This callable completes for its side effects."""
     n_chunks = windows.shape[0]
     if n_chunks == 0:
         return
@@ -170,17 +136,6 @@ def _fold_windows(counter, windows, step, start_offset=0):
 
 
 def _fold_chunk_batch(result, chunks, windows, step, start_offset=0):
-    """Implement the fold chunk batch helper.
-
-    Args:
-        result (Any): Result value.
-        chunks (Any): Chunks value.
-        windows (Any): Windows value.
-        step (Any): Step value.
-        start_offset (Any, optional): Start offset value. Defaults to 0.
-
-    Returns:
-        None: This callable completes for its side effects."""
     n_chunks = chunks.shape[0]
     if n_chunks == 0:
         return
@@ -211,14 +166,6 @@ def _ensure_source_dim(x, chunk_batch):
 
 
 def _fit_tensor_length(x, length):
-    """Implement the fit tensor length helper.
-
-    Args:
-        x (Any): X value.
-        length (Any): Length value.
-
-    Returns:
-        Any: Computed result."""
     if x.shape[-1] > length:
         return x[..., :length]
     if x.shape[-1] < length:
@@ -227,14 +174,6 @@ def _fit_tensor_length(x, length):
 
 
 def _autocast(device, enabled):
-    """Implement the autocast helper.
-
-    Args:
-        device (Any): Device value.
-        enabled (Any): Enabled value.
-
-    Returns:
-        Any: Computed result."""
     device_type = torch.device(device).type
     if enabled and device_type in ("cuda", "mps"):
         return torch.amp.autocast(device_type, dtype=torch.float16)
@@ -248,13 +187,6 @@ def _inference_context(device):
 
 
 def _source_names(config):
-    """Implement the source names helper.
-
-    Args:
-        config (AttrDict | dict): Loaded pymss configuration.
-
-    Returns:
-        Any: Computed result."""
     return config.training.instruments if config.training.target_instrument is None else [config.training.target_instrument]
 
 
@@ -281,27 +213,10 @@ def _normalize_source_indices(config, source_indices):
 
 
 def _source_count(config, source_indices=None):
-    """Implement the source count helper.
-
-    Args:
-        config (AttrDict | dict): Loaded pymss configuration.
-        source_indices (Any, optional): Source indices value. Defaults to None.
-
-    Returns:
-        Any: Computed result."""
     return len(_source_names(config)) if source_indices is None else len(source_indices)
 
 
 def _sources_to_dict(config, estimated_sources, source_indices=None):
-    """Implement the sources to dict helper.
-
-    Args:
-        config (AttrDict | dict): Loaded pymss configuration.
-        estimated_sources (Any): Estimated sources value.
-        source_indices (Any, optional): Source indices value. Defaults to None.
-
-    Returns:
-        Any: Computed result."""
     names = _source_names(config)
     if source_indices is not None:
         names = [names[index] for index in source_indices]
@@ -309,14 +224,6 @@ def _sources_to_dict(config, estimated_sources, source_indices=None):
 
 
 def _prepare_mix_for_chunks(mix, border):
-    """Implement the prepare mix for chunks helper.
-
-    Args:
-        mix (np.ndarray): Mix value.
-        border (Any): Border value.
-
-    Returns:
-        Any: Computed result."""
     length_init = mix.shape[-1]
     mix = mix.unsqueeze(0) if mix.ndim == 1 else mix
     if length_init > 2 * border and border > 0:
@@ -325,17 +232,6 @@ def _prepare_mix_for_chunks(mix, border):
 
 
 def _init_overlap_buffers(config, mix, device, use_fast_path, source_indices=None):
-    """Implement the init overlap buffers helper.
-
-    Args:
-        config (AttrDict | dict): Loaded pymss configuration.
-        mix (np.ndarray): Mix value.
-        device (Any): Device value.
-        use_fast_path (Any): Use fast path value.
-        source_indices (Any, optional): Source indices value. Defaults to None.
-
-    Returns:
-        Any: Computed result."""
     req_shape = (_source_count(config, source_indices),) + tuple(mix.shape)
     result_device = device if use_fast_path else "cpu"
     counter_shape = (1, 1, mix.shape[1])
@@ -345,27 +241,11 @@ def _init_overlap_buffers(config, mix, device, use_fast_path, source_indices=Non
 
 
 def _model_mix(mix, device):
-    """Implement the model mix helper.
-
-    Args:
-        mix (np.ndarray): Mix value.
-        device (Any): Device value.
-
-    Returns:
-        Any: Computed result."""
     return mix.to(device) if torch.device(device).type != "cpu" else mix
 
 
 @contextmanager
 def _model_source_context(model, source_indices):
-    """Implement the model source context helper.
-
-    Args:
-        model (str): Model value.
-        source_indices (Any): Source indices value.
-
-    Returns:
-        None: This callable completes for its side effects."""
     target = _model_target(model)
     sentinel = object()
     previous = getattr(target, "_pymss_source_indices", sentinel)
@@ -382,15 +262,6 @@ def _model_source_context(model, source_indices):
 
 
 def _select_sources(chunks, source_indices, already_selected=False):
-    """Implement the select sources helper.
-
-    Args:
-        chunks (Any): Chunks value.
-        source_indices (Any): Source indices value.
-        already_selected (Any, optional): Already selected value. Defaults to False.
-
-    Returns:
-        Any: Computed result."""
     if source_indices is None or already_selected:
         return chunks
     index = torch.as_tensor(source_indices, device=chunks.device)
@@ -417,15 +288,6 @@ def _run_model_chunk(model, arr, chunk_size, source_indices=None):
 
 
 def _extract_chunk(mix, start, chunk_size):
-    """Implement the extract chunk helper.
-
-    Args:
-        mix (np.ndarray): Mix value.
-        start (Any): Start value.
-        chunk_size (Any): Chunk size value.
-
-    Returns:
-        Any: Computed result."""
     length = min(chunk_size, mix.shape[1] - start)
     part = mix[:, start : start + chunk_size]
     if length == chunk_size:
@@ -438,18 +300,6 @@ def _extract_chunk(mix, start, chunk_size):
 
 
 def _add_weighted_chunk(result, counter, chunk, window, start, length):
-    """Implement the add weighted chunk helper.
-
-    Args:
-        result (Any): Result value.
-        counter (Any): Counter value.
-        chunk (Any): Chunk value.
-        window (Any): Window value.
-        start (Any): Start value.
-        length (Any): Length value.
-
-    Returns:
-        None: This callable completes for its side effects."""
     device = result.device
     window = window.to(device=device, dtype=torch.float32)[:length]
     result[..., start : start + length] += chunk[..., :length].to(device=device, dtype=torch.float32) * window
@@ -558,16 +408,6 @@ def _run_tail_chunks(
 
 
 def _finalize_overlap(result, counter, length_init, border):
-    """Implement the finalize overlap helper.
-
-    Args:
-        result (Any): Result value.
-        counter (Any): Counter value.
-        length_init (Any): Length init value.
-        border (Any): Border value.
-
-    Returns:
-        Any: Computed result."""
     if length_init > 2 * border and border > 0:
         start, end = border, border + length_init
     else:
@@ -599,15 +439,6 @@ def _finalize_overlap(result, counter, length_init, border):
 
 
 def _mlx_reflect_pad_1d(x, left=0, right=0):
-    """Implement the mlx reflect pad 1d helper.
-
-    Args:
-        x (Any): X value.
-        left (Any, optional): Left value. Defaults to 0.
-        right (Any, optional): Right value. Defaults to 0.
-
-    Returns:
-        Any: Computed result."""
     import mlx.core as mx
 
     parts = []
@@ -620,14 +451,6 @@ def _mlx_reflect_pad_1d(x, left=0, right=0):
 
 
 def _mlx_get_windowing_array(window_size, fade_size):
-    """Implement the mlx get windowing array helper.
-
-    Args:
-        window_size (Any): Window size value.
-        fade_size (Any): Fade size value.
-
-    Returns:
-        Any: Computed result."""
     import mlx.core as mx
 
     if fade_size <= 0:
@@ -641,16 +464,6 @@ def _mlx_get_windowing_array(window_size, fade_size):
 
 
 def _mlx_build_chunk_plan(total_length, chunk_size, step, fade_size):
-    """Implement the mlx build chunk plan helper.
-
-    Args:
-        total_length (Any): Total length value.
-        chunk_size (Any): Chunk size value.
-        step (Any): Step value.
-        fade_size (Any): Fade size value.
-
-    Returns:
-        Any: Computed result."""
     starts = list(range(0, total_length, step))
     normal_window = _mlx_get_windowing_array(chunk_size, fade_size)
     windows = []
@@ -670,14 +483,6 @@ def _mlx_build_chunk_plan(total_length, chunk_size, step, fade_size):
 
 
 def _mlx_prepare_mix_for_chunks(mix, border):
-    """Implement the mlx prepare mix for chunks helper.
-
-    Args:
-        mix (np.ndarray): Mix value.
-        border (Any): Border value.
-
-    Returns:
-        Any: Computed result."""
     import mlx.core as mx
 
     length_init = mix.shape[-1]
@@ -690,15 +495,6 @@ def _mlx_prepare_mix_for_chunks(mix, border):
 
 
 def _mlx_extract_chunk(mix, start, chunk_size):
-    """Implement the mlx extract chunk helper.
-
-    Args:
-        mix (np.ndarray): Mix value.
-        start (Any): Start value.
-        chunk_size (Any): Chunk size value.
-
-    Returns:
-        Any: Computed result."""
     import mlx.core as mx
 
     length = min(chunk_size, mix.shape[1] - start)
@@ -714,14 +510,6 @@ def _mlx_extract_chunk(mix, start, chunk_size):
 
 
 def _mlx_fit_length(x, length):
-    """Implement the mlx fit length helper.
-
-    Args:
-        x (Any): X value.
-        length (Any): Length value.
-
-    Returns:
-        Any: Computed result."""
     import mlx.core as mx
 
     if x.shape[-1] > length:
@@ -754,15 +542,6 @@ def _mlx_clear_cache_after_eval(enabled=False):
 
 
 def _mlx_run_model_chunk(model, arr, chunk_size, clear_cache_after_eval=False):
-    """Implement the mlx run model chunk helper.
-
-    Args:
-        model (str): Model value.
-        arr (np.ndarray): Arr value.
-        chunk_size (Any): Chunk size value.
-
-    Returns:
-        Any: Computed result."""
     with _mlx_clear_cache_after_eval(clear_cache_after_eval):
         y = model.mlx_forward_mx(arr)
     if y.ndim == arr.ndim:
@@ -771,14 +550,6 @@ def _mlx_run_model_chunk(model, arr, chunk_size, clear_cache_after_eval=False):
 
 
 def _mlx_select_sources(chunks, source_indices):
-    """Implement the mlx select sources helper.
-
-    Args:
-        chunks (Any): Chunks value.
-        source_indices (Any): Source indices value.
-
-    Returns:
-        Any: Computed result."""
     if source_indices is None:
         return chunks
 
@@ -788,18 +559,6 @@ def _mlx_select_sources(chunks, source_indices):
 
 
 def _mlx_add_weighted_chunk(result, counter, chunk, window, start, length):
-    """Implement the mlx add weighted chunk helper.
-
-    Args:
-        result (Any): Result value.
-        counter (Any): Counter value.
-        chunk (Any): Chunk value.
-        window (Any): Window value.
-        start (Any): Start value.
-        length (Any): Length value.
-
-    Returns:
-        Any: Computed result."""
     import mlx.core as mx
 
     window = window[:length].astype(result.dtype)
@@ -809,16 +568,6 @@ def _mlx_add_weighted_chunk(result, counter, chunk, window, start, length):
 
 
 def _mlx_finalize_overlap(result, counter, length_init, border):
-    """Implement the mlx finalize overlap helper.
-
-    Args:
-        result (Any): Result value.
-        counter (Any): Counter value.
-        length_init (Any): Length init value.
-        border (Any): Border value.
-
-    Returns:
-        Any: Computed result."""
     import mlx.core as mx
 
     estimated_sources = result / counter
@@ -830,14 +579,6 @@ def _mlx_finalize_overlap(result, counter, length_init, border):
 
 
 def _can_demix_mlx_full(model, device):
-    """Implement the can demix mlx full helper.
-
-    Args:
-        model (str): Model value.
-        device (Any): Device value.
-
-    Returns:
-        Any: Computed result."""
     return (
         torch.device(device).type == "mps"
         and getattr(model, "mps_model_backend", None) == "mlx_full"

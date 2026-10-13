@@ -191,15 +191,6 @@ def _resolve_public_device(device, inference_params, logger):
 
 
 def _select_device(device, device_ids, logger):
-    """Implement the select device helper.
-
-    Args:
-        device (Any): Device value.
-        device_ids (Any): Device ids value.
-        logger (logging.Logger | None): Optional logger for progress messages.
-
-    Returns:
-        Any: Computed result."""
     try:
         device_type = torch.device(device).type
     except (RuntimeError, TypeError):
@@ -222,16 +213,6 @@ def _select_device(device, device_ids, logger):
 
 
 def _prefer_mlx_for_auto(requested_device, selected_device, inference_params, logger):
-    """Implement the prefer mlx for auto helper.
-
-    Args:
-        requested_device (Any): Requested device value.
-        selected_device (Any): Selected device value.
-        inference_params (dict | None): Inference params value.
-        logger (logging.Logger | None): Optional logger for progress messages.
-
-    Returns:
-        Any: Computed result."""
     if requested_device == "auto" and torch.device(selected_device).type == "mps":
         if "mps_model_backend" not in inference_params:
             inference_params["mps_model_backend"] = "mlx_full"
@@ -244,13 +225,6 @@ def _prefer_mlx_for_auto(requested_device, selected_device, inference_params, lo
 
 
 def _unwrap_state_dict(state_dict):
-    """Implement the unwrap state dict helper.
-
-    Args:
-        state_dict (Any): State dict value.
-
-    Returns:
-        Any: Computed result."""
     for key in ("state", "state_dict", "model_state_dict"):
         if key in state_dict:
             return state_dict[key]
@@ -258,13 +232,6 @@ def _unwrap_state_dict(state_dict):
 
 
 def _apollo_state_dict_path(model_path):
-    """Implement the apollo state dict path helper.
-
-    Args:
-        model_path (str | os.PathLike): Model path value.
-
-    Returns:
-        Any: Computed result."""
     root, ext = os.path.splitext(model_path)
     candidates = []
     if ext:
@@ -307,13 +274,6 @@ def _load_state_dict(model_type, model_path, device):
 
 @contextmanager
 def _skip_torch_default_init():
-    """Implement the skip torch default init helper.
-
-    Args:
-        None: This callable does not accept user-provided arguments.
-
-    Returns:
-        None: This callable completes for its side effects."""
     classes = (
         torch.nn.Linear,
         torch.nn.Bilinear,
@@ -349,13 +309,6 @@ def _skip_torch_default_init():
 
 
 def _install_demucs_pickle_stubs():
-    """Implement the install demucs pickle stubs helper.
-
-    Args:
-        None: This callable does not accept user-provided arguments.
-
-    Returns:
-        Any: Computed result."""
     import sys
     import types
 
@@ -378,13 +331,6 @@ def _install_demucs_pickle_stubs():
 
 
 def _restore_modules(previous):
-    """Implement the restore modules helper.
-
-    Args:
-        previous (Any): Previous value.
-
-    Returns:
-        None: This callable completes for its side effects."""
     import sys
 
     for name, module in previous.items():
@@ -395,25 +341,10 @@ def _restore_modules(previous):
 
 
 def _runtime_model_type(model_type, state_dict):
-    """Implement the runtime model type helper.
-
-    Args:
-        model_type (Any): Model type value.
-        state_dict (Any): State dict value.
-
-    Returns:
-        Any: Computed result."""
     return "bs_roformer_hyperace" if model_type == "bs_roformer" and any(".segm." in key for key in state_dict) else model_type
 
 
 def _infer_mel_band_roformer_mlp_hidden_layers(state_dict):
-    """Implement the infer mel band roformer mlp hidden layers helper.
-
-    Args:
-        state_dict (Any): State dict value.
-
-    Returns:
-        Any: Computed result."""
     pattern = re.compile(r"(?:^|\.)mask_estimators\.0\.to_freqs\.0\.0\.(\d+)\.weight$")
     layer_indices = sorted({int(match.group(1)) for key in state_dict for match in [pattern.search(key)] if match})
     if not layer_indices:
@@ -422,25 +353,10 @@ def _infer_mel_band_roformer_mlp_hidden_layers(state_dict):
 
 
 def _store_torch_model_on_cpu_for_mlx(config, device):
-    """Implement the store torch model on cpu for mlx helper.
-
-    Args:
-        config (AttrDict | dict): Loaded pymss configuration.
-        device (Any): Device value.
-
-    Returns:
-        Any: Computed result."""
     return torch.device(device).type == "mps" and config.inference.get("mps_model_backend", "torch") == "mlx_full"
 
 
 def _coerce_mps_float64(module):
-    """Implement the coerce mps float64 helper.
-
-    Args:
-        module (Any): Module value.
-
-    Returns:
-        None: This callable completes for its side effects."""
     for child in module.modules():
         for name, param in list(child._parameters.items()):
             if param is not None and param.dtype == torch.float64:
@@ -480,14 +396,6 @@ def _normalize_model_dtype(value):
 
 
 def _model_is_stereo(model_type, config):
-    """Implement the model is stereo helper.
-
-    Args:
-        model_type (Any): Model type value.
-        config (AttrDict | dict): Loaded pymss configuration.
-
-    Returns:
-        Any: Computed result."""
     if model_type == "vr":
         return True
     if model_type in ["bs_roformer", "bs_roformer_hyperace", "mel_band_roformer", *LEGACY_DEMUCS_MODEL_TYPES]:
@@ -496,15 +404,6 @@ def _model_is_stereo(model_type, config):
 
 
 def _prepare_mix_channels(mix, is_stereo, logger):
-    """Implement the prepare mix channels helper.
-
-    Args:
-        mix (np.ndarray): Mix value.
-        is_stereo (Any): Is stereo value.
-        logger (logging.Logger | None): Optional logger for progress messages.
-
-    Returns:
-        Any: Computed result."""
     if is_stereo and len(mix.shape) == 1:
         logger.warning("Track is mono, but model is stereo, adding a second channel.")
         return np.stack([mix, mix], axis=0)
@@ -519,15 +418,6 @@ def _prepare_mix_channels(mix, is_stereo, logger):
 
 
 def _standardize_mix(mix, enabled, logger):
-    """Implement the standardize mix helper.
-
-    Args:
-        mix (np.ndarray): Mix value.
-        enabled (Any): Enabled value.
-        logger (logging.Logger | None): Optional logger for progress messages.
-
-    Returns:
-        Any: Computed result."""
     if not enabled:
         return mix, None
 
@@ -566,27 +456,10 @@ def _normalize_outputs(results, enabled, logger, target_peak=OUTPUT_NORMALIZE_PE
 
 
 def _destandardize(estimates, stats):
-    """Implement the destandardize helper.
-
-    Args:
-        estimates (Any): Estimates value.
-        stats (Any): Stats value.
-
-    Returns:
-        Any: Computed result."""
     return estimates if stats is None else estimates * stats[1] + stats[0]
 
 
 def _tta_variants(mix, use_tta, logger):
-    """Implement the tta variants helper.
-
-    Args:
-        mix (np.ndarray): Mix value.
-        use_tta (Any): Use tta value.
-        logger (logging.Logger | None): Optional logger for progress messages.
-
-    Returns:
-        Any: Computed result."""
     if not use_tta:
         return [mix.copy()]
     variants = [mix.copy(), mix[::-1].copy(), -1.0 * mix.copy()]
@@ -595,13 +468,6 @@ def _tta_variants(mix, use_tta, logger):
 
 
 def _merge_tta_results(results):
-    """Implement the merge tta results helper.
-
-    Args:
-        results (dict): Results value.
-
-    Returns:
-        Any: Computed result."""
     waveforms = results[0]
     for index, result in enumerate(results[1:], start=1):
         for stem, audio in result.items():

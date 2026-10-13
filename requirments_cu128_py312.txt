@@ -10,15 +10,5 @@
 #   python -m pip install -r requirments_cu128_py312.txt
 # Windows portable runtime users may replace `python` with `runtime\python.exe -I`.
 
---index-url https://mirrors.pku.edu.cn/pypi/simple
-
+-r requirements/cu128.txt
 -r requirements/common.txt
-
-# PyMSS uses the bundled tools.pymss and tools.pymss_core packages on all devices.
-
-# ONNX Runtime 1.19.x uses the CUDA 12 / cuDNN 9 provider ABI. Later current
-# releases have moved to CUDA 13, so this compatibility window is intentional.
-onnxruntime-gpu>=1.19.2,<1.20
-coloredlogs>=15.0,<16
-
-PyYAML>=6.0.1

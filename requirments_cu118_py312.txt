@@ -10,20 +10,5 @@
 #   python -m pip install -r requirments_cu118_py312.txt
 # Windows portable runtime users may replace `python` with `runtime\python.exe -I`.
 
---index-url https://mirrors.pku.edu.cn/pypi/simple
-
+-r requirements/cu118.txt
 -r requirements/common.txt
-
-# PyMSS uses the bundled tools.pymss and tools.pymss_core packages on all devices.
-
-# ONNX Runtime 1.18.x is the CUDA 11 / cuDNN 8 generation with Python 3.12
-# Windows wheels. The CUDA DLL packages are pinned because later cuDNN/CUDA
-# majors are ABI-incompatible with this provider build.
-onnxruntime-gpu>=1.18.0,<1.19
-nvidia-cudnn-cu11==8.9.5.29
-nvidia-cublas-cu11==11.11.3.6
-nvidia-cuda-runtime-cu11==11.8.89
-nvidia-cuda-nvrtc-cu11==11.8.89
-nvidia-cufft-cu11==10.9.0.58
-
-PyYAML>=6.0.1

@@ -7,13 +7,6 @@ from pathlib import Path
 
 
 def _default_model_dir():
-    """Implement the default model dir helper.
-
-    Args:
-        None: This callable does not accept user-provided arguments.
-
-    Returns:
-        Any: Computed result."""
     env_value = os.environ.get("PYMSS_MODEL_DIR")
     if env_value:
         return Path(env_value)
@@ -53,35 +46,14 @@ class ModelEntry:
 
     @property
     def stem(self):
-        """Implement the stem helper.
-
-        Args:
-            None: This callable does not accept user-provided arguments.
-
-        Returns:
-            Any: Computed result."""
         return Path(self.name).stem
 
     @property
     def category_path(self):
-        """Implement the category path helper.
-
-        Args:
-            None: This callable does not accept user-provided arguments.
-
-        Returns:
-            Any: Computed result."""
         return "/".join(part for part in (self.primary_category, self.secondary_category) if part)
 
     @classmethod
     def from_dict(cls, data):
-        """Implement the from dict helper.
-
-        Args:
-            data (Mapping | None): Data value.
-
-        Returns:
-            Any: Computed result."""
         return cls(
             name=data["name"],
             aliases=tuple(data.get("aliases", ())),
@@ -123,13 +95,6 @@ def load_model_catalog():
 
 @lru_cache(maxsize=1)
 def _model_index():
-    """Implement the model index helper.
-
-    Args:
-        None: This callable does not accept user-provided arguments.
-
-    Returns:
-        Any: Computed result."""
     index = {}
     for entry in load_model_catalog()["models"]:
         names = {entry.name, entry.stem, *entry.aliases}
@@ -225,49 +190,18 @@ def get_model_entry(model_name):
 
 
 def model_root(model_dir=None):
-    """Implement the model root helper.
-
-    Args:
-        model_dir (str | os.PathLike | None, optional): Local model cache directory. Uses the package default when None. Defaults to None.
-
-    Returns:
-        Any: Computed result."""
     return Path(model_dir).expanduser() if model_dir else DEFAULT_MODEL_DIR
 
 
 def model_path_for(entry, model_dir=None):
-    """Implement the model path for helper.
-
-    Args:
-        entry (ModelEntry): Entry value.
-        model_dir (str | os.PathLike | None, optional): Local model cache directory. Uses the package default when None. Defaults to None.
-
-    Returns:
-        Any: Computed result."""
     return model_root(model_dir) / entry.relpath
 
 
 def config_path_for(entry, model_dir=None):
-    """Implement the config path for helper.
-
-    Args:
-        entry (ModelEntry): Entry value.
-        model_dir (str | os.PathLike | None, optional): Local model cache directory. Uses the package default when None. Defaults to None.
-
-    Returns:
-        Any: Computed result."""
     return model_root(model_dir) / entry.config_relpath if entry.config_relpath else None
 
 
 def auxiliary_paths_for(entry, model_dir=None):
-    """Implement the auxiliary paths for helper.
-
-    Args:
-        entry (ModelEntry): Entry value.
-        model_dir (str | os.PathLike | None, optional): Local model cache directory. Uses the package default when None. Defaults to None.
-
-    Returns:
-        Any: Computed result."""
     root = model_root(model_dir)
     return [root / relpath for relpath in entry.auxiliary_relpaths]
 

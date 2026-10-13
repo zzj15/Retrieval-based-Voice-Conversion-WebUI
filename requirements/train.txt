@@ -1,0 +1,4 @@
+# CLI training, including TensorBoard logs and diagnostic plots.
+-r core.txt
+matplotlib>=3.8.2,<4
+tensorboard>=2.19.0
