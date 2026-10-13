@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from torchaudio.transforms import Resample
 
 from infer.hubert import extract_hubert_features, load_hubert_model
+from infer.checkpoint import load_synthesizer
 from i18n.i18n import I18nAuto
 from tools.cuda_graph import run_cuda_graph
 
@@ -24,33 +25,7 @@ def printt(strr, *args):
 
 
 def get_synthesizer(pth_path, device=torch.device("cpu")):
-    from infer.module.models import (
-        SynthesizerTrnMs256NSFsid,
-        SynthesizerTrnMs256NSFsid_nono,
-        SynthesizerTrnMs768NSFsid,
-        SynthesizerTrnMs768NSFsid_nono,
-    )
-
-    cpt = torch.load(pth_path, map_location=torch.device("cpu"))
-    cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]
-    if_f0 = cpt.get("f0", 1)
-    version = cpt.get("version", "v1")
-    if version == "v1":
-        if if_f0 == 1:
-            net_g = SynthesizerTrnMs256NSFsid(*cpt["config"], is_half=False)
-        else:
-            net_g = SynthesizerTrnMs256NSFsid_nono(*cpt["config"])
-    elif version == "v2":
-        if if_f0 == 1:
-            net_g = SynthesizerTrnMs768NSFsid(*cpt["config"], is_half=False)
-        else:
-            net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
-    del net_g.enc_q
-    net_g.load_state_dict(cpt["weight"], strict=False)
-    net_g = net_g.float()
-    net_g.eval().to(device)
-    net_g.remove_weight_norm()
-    return net_g, cpt
+    return load_synthesizer(pth_path, device, remove_weight_norm=True)
 
 
 # config.device=torch.device("cpu")########强制cpu测试
@@ -108,7 +83,6 @@ class RVC:
             def set_synthesizer():
                 self.net_g, cpt = get_synthesizer(self.pth_path, self.device)
                 self.tgt_sr = cpt["config"][-1]
-                cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]
                 self.if_f0 = cpt.get("f0", 1)
                 self.version = cpt.get("version", "v1")
                 if self.is_half:

@@ -22,7 +22,7 @@ Exports:
     save_audio: Save a NumPy audio array to wav/flac/mp3/m4a.
 
 Example:
-    >>> from pymss import MSSeparator
+    >>> from tools.pymss import MSSeparator
     >>> separator = MSSeparator.from_model_name(
     ...     "bs_roformer_voc_hyperacev2",
     ...     download=True,
@@ -31,12 +31,12 @@ Example:
     >>> separator.process_folder("song.wav")
 
 Example:
-    >>> from pymss import download_model, list_models
+    >>> from tools.pymss import download_model, list_models
     >>> models = list_models(supported=True)
     >>> download_model(models[0].name, model_dir="models")
 
 Example:
-    >>> from pymss import ensemble_audios, save_ensemble_audio
+    >>> from tools.pymss import ensemble_audios, save_ensemble_audio
     >>> audio, sample_rate = ensemble_audios(["a.wav", "b.wav"], weights=[1, 1])
     >>> save_ensemble_audio(["a.wav", "b.wav"], "ensemble.wav")
 """

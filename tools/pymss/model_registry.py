@@ -115,7 +115,7 @@ def load_model_catalog():
 
     Returns:
         Any: Computed result."""
-    with resources.files("pymss.resources").joinpath("model_catalog.json").open(encoding="utf-8") as f:
+    with resources.files("tools.pymss.resources").joinpath("model_catalog.json").open(encoding="utf-8") as f:
         data = json.load(f)
     models = [ModelEntry.from_dict(item) for item in data["models"]]
     return {**data, "models": models}
@@ -173,7 +173,7 @@ def list_models(category=None, supported=None):
         list[ModelEntry]: Matching catalog entries in catalog order.
 
     Example:
-        >>> from pymss import list_models
+        >>> from tools.pymss import list_models
         >>> supported_models = list_models(supported=True)
         >>> supported_models[0].name
 
@@ -210,7 +210,7 @@ def get_model_entry(model_name):
         KeyError: If ``model_name`` is unknown.
 
     Example:
-        >>> from pymss import get_model_entry
+        >>> from tools.pymss import get_model_entry
         >>> entry = get_model_entry("bs_roformer_voc_hyperacev2")
         >>> entry.model_type
         'bs_roformer'
@@ -302,7 +302,7 @@ def resolve_model(model_name, model_dir=None, require_supported=True, require_ex
             ``require_exists`` is true.
 
     Example:
-        >>> from pymss import resolve_model
+        >>> from tools.pymss import resolve_model
         >>> resolved = resolve_model("bs_roformer_voc_hyperacev2", require_exists=False)
         >>> resolved["model_type"]
         'bs_roformer'
@@ -361,7 +361,7 @@ def create_separator(model_name, model_dir=None, **separator_kwargs):
         FileNotFoundError: If required model files are not present locally.
 
     Example:
-        >>> from pymss import create_separator
+        >>> from tools.pymss import create_separator
         >>> separator = create_separator(
         ...     "bs_roformer_voc_hyperacev2",
         ...     model_dir="models",

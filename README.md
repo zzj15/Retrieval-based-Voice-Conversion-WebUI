@@ -87,6 +87,10 @@ python -m pip install --upgrade pip setuptools wheel
 | NVIDIA RTX 50 系 | 先安装 CUDA 12.8 版 Torch，再安装 `requirments_cu128_py312.txt` |
 | NVIDIA RTX 50 系以前 | 先安装 CUDA 11.8 版 Torch，再安装 `requirments_cu118_py312.txt` |
 
+三个硬件依赖文件共同引用 `requirements/common.txt`，公共版本约束只需维护一份；安装命令与 Torch/ONNX 的硬件版本选择保持不变。
+
+人声分离统一使用仓库内的 `tools.pymss` 和 `tools.pymss_core`，无需额外安装 PyPI 的 `pymss` 或 `pymss-core`。内置版本保留了 DirectML 等兼容修改；PyPI 发布版要求 Torch ≥ 2.7.1，与当前 DirectML 的 Torch 2.4.1 不兼容。命令行入口仍为 `python -m tools.pymss.cli`。
+
 #### CPU、AMD、Intel
 
 ```bash
@@ -213,6 +217,16 @@ python webui.py --noautoopen
 ```
 
 默认服务监听端口为 `7865`。用户自己的 `.pth` 模型放入 `assets/weights/`，`.index` 文件放入 `assets/indices/`。
+
+## 开发验证
+
+安装对应硬件的依赖后，在项目根目录运行：
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+测试使用小型随机权重模型，检查 v1/v2、带音高/不带音高模型的加载和基础合成，以及模型卸载、说话人元信息、内置 PyMSS 导入与资源定位，不需要下载预训练模型。
 
 ## 参考项目
 + [ContentVec](https://github.com/auspicious3000/contentvec/)

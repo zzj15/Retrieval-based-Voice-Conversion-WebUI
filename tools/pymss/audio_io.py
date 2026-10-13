@@ -138,7 +138,7 @@ def load_audio(path, sr=None, mono=False, offset=0.0, duration=None):
         output.
 
     Example:
-        >>> from pymss import load_audio
+        >>> from tools.pymss import load_audio
         >>> audio, sample_rate = load_audio("song.wav", sr=44100)
         >>> sample_rate
         44100
@@ -224,7 +224,7 @@ def save_audio(path, audio, sr, output_format, audio_params):
         None: The file is written to ``path``.
 
     Example:
-        >>> from pymss import save_audio
+        >>> from tools.pymss import save_audio
         >>> save_audio(
         ...     "vocals.wav",
         ...     vocals,

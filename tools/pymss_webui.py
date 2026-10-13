@@ -25,9 +25,6 @@ from tools.process_utils import kill_process_tree
 logger = logging.getLogger(__name__)
 config = Config()
 weight_pymss_root = Path(os.getenv("weight_pymss_root", "assets/pymss_weights"))
-tools_root = str(Path(__file__).resolve().parent)
-if tools_root not in sys.path:
-    sys.path.insert(0, tools_root)
 
 MODEL_SAMPLE_RATE = 44100
 DML_CHUNK_SIZE = 88200
@@ -287,7 +284,7 @@ class MSSTBatchSeparator:
         separation_logger=None,
     ):
         try:
-            from pymss import MSSeparator, load_audio
+            from tools.pymss import MSSeparator, load_audio
         except ImportError as error:
             raise RuntimeError(
                 "项目内置的 pymss 运行库加载失败"

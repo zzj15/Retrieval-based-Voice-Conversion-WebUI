@@ -2,7 +2,7 @@ from ._core_shims import alias_submodules
 
 alias_submodules(
     __name__,
-    "pymss_core.modules",
+    "tools.pymss_core.modules",
     (
         "apollo_mlx",
         "bandit_mlx",
@@ -20,7 +20,7 @@ alias_submodules(
 
 alias_submodules(
     __name__,
-    "pymss_core.modules",
+    "tools.pymss_core.modules",
     (
         "bandit",
         "bandit.bandsplit",

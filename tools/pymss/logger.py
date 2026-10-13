@@ -296,7 +296,7 @@ def get_separation_logger(
 
     Example:
         >>> import logging
-        >>> from pymss import get_separation_logger
+        >>> from tools.pymss import get_separation_logger
         >>> logger = get_separation_logger(console_level=logging.DEBUG)
         >>> logger.debug("debug output is visible")
 

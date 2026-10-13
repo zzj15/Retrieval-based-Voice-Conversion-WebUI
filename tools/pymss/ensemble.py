@@ -205,7 +205,7 @@ def ensemble_audios(files, algorithm="avg_wave", weights=None, logger=None):
         FileNotFoundError: If any input file does not exist.
 
     Example:
-        >>> from pymss import ensemble_audios
+        >>> from tools.pymss import ensemble_audios
         >>> audio, sample_rate = ensemble_audios(
         ...     ["vocals_a.wav", "vocals_b.wav"],
         ...     algorithm="avg_wave",
@@ -303,7 +303,7 @@ def save_ensemble_audio(
         FileNotFoundError: If any input file does not exist.
 
     Example:
-        >>> from pymss import save_ensemble_audio
+        >>> from tools.pymss import save_ensemble_audio
         >>> save_ensemble_audio(
         ...     ["vocals_a.wav", "vocals_b.wav"],
         ...     "vocals_ensemble.flac",

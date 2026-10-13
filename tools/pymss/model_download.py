@@ -345,7 +345,7 @@ def download_model(model_name, model_dir=None, source="modelscope", endpoint=Non
         DownloadValidationError: If a downloaded file fails size/hash checks.
 
     Example:
-        >>> from pymss import download_model
+        >>> from tools.pymss import download_model
         >>> result = download_model("bs_roformer_voc_hyperacev2", model_dir="models")
         >>> result["entry"].name
 

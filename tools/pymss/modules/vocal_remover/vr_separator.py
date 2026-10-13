@@ -9,8 +9,8 @@ from torch import nn
 from torch.nn.utils.fusion import fuse_conv_bn_eval
 from tqdm import tqdm
 
-from pymss_core.modules.vocal_remover import ModelParameters, determine_model_capacity
-from pymss_core.modules.vocal_remover.uvr_lib_v5.vr_network import nets_new
+from tools.pymss_core.modules.vocal_remover import ModelParameters, determine_model_capacity
+from tools.pymss_core.modules.vocal_remover.uvr_lib_v5.vr_network import nets_new
 
 from .common_separator import CommonSeparator
 from .uvr_lib_v5 import spec_utils
@@ -39,7 +39,7 @@ class _ResourceDir:
         return repr(self._root)
 
 
-VR_PARAMS_DIR = _ResourceDir("pymss_core.resources.vr_modelparams")
+VR_PARAMS_DIR = _ResourceDir("tools.pymss_core.resources.vr_modelparams")
 
 
 def _fuse_sequential_conv_bn(module):
