@@ -17,21 +17,8 @@ def dynamic_range_compression_torch(x, C=1, clip_val=2e-6):
     return torch.log(torch.clamp(x, min=clip_val) * C)
 
 
-def dynamic_range_decompression_torch(x, C=1):
-    """
-    PARAMS
-    ------
-    C: compression factor used to compress
-    """
-    return torch.exp(x) / C
-
-
 def spectral_normalize_torch(magnitudes):
     return dynamic_range_compression_torch(magnitudes)
-
-
-def spectral_de_normalize_torch(magnitudes):
-    return dynamic_range_decompression_torch(magnitudes)
 
 
 # Reusable banks
