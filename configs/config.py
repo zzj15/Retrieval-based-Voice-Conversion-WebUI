@@ -1,4 +1,3 @@
-import argparse
 import os
 import re
 import sys
@@ -144,19 +143,19 @@ MODEL_CONFIG_FILES = (
 )
 
 
-def singleton_variable(func):
-    def wrapper(*args, **kwargs):
-        if not wrapper.instance:
-            wrapper.instance = func(*args, **kwargs)
-        return wrapper.instance
-
-    wrapper.instance = None
-    return wrapper
-
-
-@singleton_variable
 class Config:
-    def __init__(self):
+    """Runtime settings; application entrypoints supply their launch options."""
+
+    def __init__(
+        self,
+        *,
+        python_cmd=None,
+        listen_port=7865,
+        iscolab=False,
+        noparallel=False,
+        noautoopen=False,
+        dml=False,
+    ):
         self.device = str(infer_device)
         self.dtype = infer_dtype
         self.is_half = infer_dtype == torch.float16
@@ -165,16 +164,13 @@ class Config:
         self.gpu_name = None
         self.json_config = self.load_config_json()
         self.gpu_mem = None
-        (
-            self.python_cmd,
-            self.listen_port,
-            self.iscolab,
-            self.noparallel,
-            self.noautoopen,
-            self.dml,
-        ) = self.arg_parse()
+        self.python_cmd = (sys.executable or "python") if python_cmd is None else python_cmd
+        self.listen_port = listen_port
+        self.iscolab = iscolab
+        self.noparallel = noparallel
+        self.noautoopen = noautoopen
         # DML is an automatic fallback when no CUDA device satisfies the rule.
-        self.dml = self.dml or (infer_device.type == "privateuseone")
+        self.dml = dml or (infer_device.type == "privateuseone")
         self.instead = ""
         self.preprocess_per = 3.7
         self.x_pad, self.x_query, self.x_center, self.x_max = self.device_config()
@@ -185,39 +181,6 @@ class Config:
         for config_file in MODEL_CONFIG_FILES:
             d[config_file] = json.loads(read_text(CONFIGS_DIR / config_file))
         return d
-
-    @staticmethod
-    def arg_parse() :
-        exe = sys.executable or "python"
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--port", type=int, default=7865, help="Listen port")
-        parser.add_argument("--pycmd", type=str, default=exe, help="Python command")
-        parser.add_argument("--colab", action="store_true", help="Launch in colab")
-        parser.add_argument(
-            "--noparallel", action="store_true", help="Disable parallel processing"
-        )
-        parser.add_argument(
-            "--noautoopen",
-            action="store_true",
-            help="Do not open in browser automatically",
-        )
-        parser.add_argument(
-            "--dml",
-            action="store_true",
-            help="torch_dml",
-        )
-        cmd_opts = parser.parse_args()
-
-        cmd_opts.port = cmd_opts.port if 0 <= cmd_opts.port <= 65535 else 7865
-
-        return (
-            cmd_opts.pycmd,
-            cmd_opts.port,
-            cmd_opts.colab,
-            cmd_opts.noparallel,
-            cmd_opts.noautoopen,
-            cmd_opts.dml,
-        )
 
     def device_config(self) :
         if infer_device.type == "cuda":

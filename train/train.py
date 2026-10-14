@@ -1,6 +1,10 @@
 import os
 import logging
+import sys
 import warnings
+
+# Spawned training processes import this entrypoint before running their target.
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 warnings.filterwarnings(
     "ignore",

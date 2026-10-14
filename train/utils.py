@@ -4,7 +4,6 @@ import json
 import logging
 import os
 import subprocess
-import sys
 import shutil
 
 import numpy as np
@@ -14,8 +13,7 @@ from tools.file_io import read_text
 
 MATPLOTLIB_FLAG = False
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-logger = logging
+logger = logging.getLogger(__name__)
 
 
 def load_checkpoint_d(checkpoint_path, combd, sbd, optimizer=None, load_opt=1):

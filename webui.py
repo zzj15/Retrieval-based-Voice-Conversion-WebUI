@@ -1,9 +1,16 @@
 import os
+import logging
+import sys
 import shutil
 import html
 import copy
 import re
 import warnings
+
+from configs.cli import parse_launch_args
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+launch_options = parse_launch_args()
 
 warnings.filterwarnings(
     "ignore",
@@ -76,7 +83,6 @@ from subprocess import Popen
 from random import shuffle
 import traceback
 import threading
-import logging
 import socket
 import subprocess
 import time
@@ -161,7 +167,7 @@ warnings.filterwarnings("ignore")
 torch.manual_seed(114514)
 
 
-config = Config()
+config = Config(**vars(launch_options))
 vc = VC(config)
 
 
@@ -599,6 +605,7 @@ def run_pymss_separation(
             save_root_ins,
             format0,
             event_callback=update_progress,
+            config=config,
         ):
             last_info = info
             start_button = button_update()

@@ -22,6 +22,12 @@ def printt(strr, *args):
 
 
 if __name__ == "__main__":
+    import logging
+    from configs.cli import parse_launch_args
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+    launch_options = parse_launch_args()
+
     import json
     import re
     import time
@@ -67,7 +73,7 @@ if __name__ == "__main__":
     class GUI:
         def __init__(self) :
             self.gui_config = GUIConfig()
-            self.config = Config()
+            self.config = Config(**vars(launch_options))
             printt("RVC_CUDA_GRAPH=%s", os.environ.get("RVC_CUDA_GRAPH", "0"))
             self.function = "vc"
             self.delay_time = 0
