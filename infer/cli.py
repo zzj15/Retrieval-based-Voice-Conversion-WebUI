@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import sys
 import warnings
@@ -187,17 +188,6 @@ def write_audio(path, audio, sample_rate, output_format):
             wav2(wav_file, output_file, output_format)
 
 
-def create_config():
-    from configs.config import Config
-
-    original_argv = sys.argv[:]
-    sys.argv = [sys.argv[0]]
-    try:
-        return Config()
-    finally:
-        sys.argv = original_argv
-
-
 def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -237,11 +227,12 @@ def main(argv=None):
             "Output already exists; use --overwrite: %s" % existing[0]
         )
 
+    from configs.config import Config
     from i18n.i18n import I18nAuto
     from infer.vc.modules import VC
 
     i18n = I18nAuto()
-    config = create_config()
+    config = Config()
     print(i18n("当前设备：%s | 推理精度：%s") % (config.device, config.dtype))
     print("%s: %s" % (i18n("选择模型"), model_name))
     print("%s: %s" % (i18n("说话人ID（0~109）"), speaker_id))
@@ -272,6 +263,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:

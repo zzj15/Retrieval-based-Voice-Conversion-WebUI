@@ -23,7 +23,6 @@ from tools.process_utils import kill_process_tree
 
 
 logger = logging.getLogger(__name__)
-config = Config()
 weight_pymss_root = Path(os.getenv("weight_pymss_root", "assets/pymss_weights"))
 
 MODEL_SAMPLE_RATE = 44100
@@ -282,7 +281,9 @@ class MSSTBatchSeparator:
         model_dtype="auto",
         progress_callback=None,
         separation_logger=None,
+        config=None,
     ):
+        config = Config() if config is None else config
         try:
             from tools.pymss import MSSeparator, load_audio
         except ImportError as error:
@@ -529,6 +530,7 @@ def _pymss_worker_main(request_path):
     try:
         with open(request_path, "r", encoding="utf-8") as request_file:
             request = json.load(request_file)
+        config = Config(dml=bool(request.get("dml", False)))
         device_type = torch.device(config.device).type
         use_dml = device_type == "privateuseone"
 
@@ -599,6 +601,7 @@ def _pymss_worker_main(request_path):
             model_dtype=requested_dtype,
             progress_callback=emit_progress,
             separation_logger=worker_logger,
+            config=config,
         ) as batch:
             device_label = "DirectML" if use_dml else device_type.upper()
             _worker_emit(
@@ -795,6 +798,7 @@ def _pymss_worker_events(
     output_format,
     model_dtype,
     allow_fp32_retry,
+    use_dml=False,
 ):
     request = {
         "model_id": spec.model_id,
@@ -804,11 +808,11 @@ def _pymss_worker_events(
         "output_format": output_format,
         "model_dtype": model_dtype,
         "allow_fp32_retry": allow_fp32_retry,
+        "dml": use_dml,
     }
     worker_code = (
         "import sys;"
         "request_path=sys.argv[1];"
-        "sys.argv[:]=[sys.argv[0]];"
         "from tools.pymss_webui import _pymss_worker_main;"
         "raise SystemExit(_pymss_worker_main(request_path))"
     )
@@ -973,6 +977,7 @@ def pymss_separate(
     save_root_ins,
     format0,
     event_callback=None,
+    config=None,
 ):
     infos = deque(maxlen=240)
     task_id = None
@@ -986,6 +991,7 @@ def pymss_separate(
             logger.exception("PyMSS UI event callback failed")
 
     try:
+        config = Config() if config is None else config
         spec = resolve_model(model_name)
         input_paths = collect_input_paths(inp_root, paths)
         if not input_paths:
@@ -1056,6 +1062,7 @@ def pymss_separate(
                     and model_dtype == "float16"
                     and attempt_index + 1 < len(attempts)
                 ),
+                use_dml=use_dml,
             )
             try:
                 for event in events:

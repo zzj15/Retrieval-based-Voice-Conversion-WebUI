@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import json
+import logging
 import mmap
 import os
 import struct
@@ -266,8 +267,6 @@ def run(args: argparse.Namespace) -> int:
         write_status(shared, STATUS_LOADING, "Loading Python and CUDA")
         with open(args.config, "r", encoding="utf-8") as handle:
             cfg = json.load(handle)
-        # RVC's Config parses process-wide CLI flags intended for its WebUI.
-        sys.argv = [sys.argv[0]]
         engine = RVCStreamEngine(cfg)
         write_status(shared, STATUS_LOADING, "Prewarming CUDA and F0")
         engine.prewarm()
@@ -342,4 +341,5 @@ def parse_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     raise SystemExit(run(parse_args()))
