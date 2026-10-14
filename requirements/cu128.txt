@@ -4,7 +4,5 @@
 
 -r core.txt
 
-# ONNX Runtime 1.19.x uses the CUDA 12 / cuDNN 9 provider ABI.
-onnxruntime-gpu>=1.19.2,<1.20
-coloredlogs>=15.0,<16
+# CUDA inference uses PyTorch and the matching libraries supplied by its wheel.
 PyYAML>=6.0.1

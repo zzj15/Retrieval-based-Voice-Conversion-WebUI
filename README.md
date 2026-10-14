@@ -89,7 +89,11 @@ python -m pip install --upgrade pip setuptools wheel
 
 以上文件安装完整功能：各自引用 `requirements/cpu.txt`、`cu118.txt` 或 `cu128.txt`，再通过 `requirements/common.txt` 汇总功能依赖。公共版本约束只需维护一份。
 
+Linux CPU 和 Linux/Windows NVIDIA CUDA 推理均使用 PyTorch，无需安装 ONNX Runtime。`cpu.txt` 仅在 Windows 安装 DirectML 所需的 `torchvision` 和 `onnxruntime-directml`；Torch 2.4.1 的兼容约束保持不变。CUDA 的运行库由匹配的 Torch wheel 提供：Linux 自动安装其声明的依赖，Windows 使用 wheel 内置的 DLL，无需另装 `onnxruntime-gpu` 或手工固定另一套 CUDA/cuDNN 库。
+
 人声分离统一使用仓库内的 `tools.pymss` 和 `tools.pymss_core`，无需额外安装 PyPI 的 `pymss` 或 `pymss-core`。内置版本保留了 DirectML 等兼容修改；PyPI 发布版要求 Torch ≥ 2.7.1，与当前 DirectML 的 Torch 2.4.1 不兼容。命令行入口仍为 `python -m tools.pymss.cli`。
+
+VR 模型参数统一保存在 `tools/pymss_core/resources/vr_modelparams/`，分离器在所有平台读取这一份资源。
 
 #### CPU、AMD、Intel
 

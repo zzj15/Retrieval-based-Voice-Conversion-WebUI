@@ -9,10 +9,9 @@
 # torch-directml 0.2.5 is built against this exact PyTorch family.
 torch==2.4.1+cpu
 torchaudio==2.4.1+cpu
-torchvision==0.19.1+cpu
+torchvision==0.19.1+cpu; platform_system == "Windows"
 torch-directml==0.2.5.dev240914; platform_system == "Windows"
 
-# Providers share a module name; install only the platform's provider.
+# Only DirectML uses ONNX Runtime; CPU and CUDA RMVPE use PyTorch.
 onnxruntime-directml>=1.24.4,<2; platform_system == "Windows"
-onnxruntime>=1.24.4,<2; platform_system != "Windows"
-coloredlogs>=15.0,<16
+coloredlogs>=15.0,<16; platform_system == "Windows"
