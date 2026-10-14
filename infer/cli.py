@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 import warnings
-from io import BytesIO
 from pathlib import Path
 
 
@@ -174,18 +173,9 @@ def collect_jobs(input_value, output_value, output_format, recursive):
 
 
 def write_audio(path, audio, sample_rate, output_format):
-    import soundfile as sf
-    from infer.audio import wav2
+    from infer.audio import write_audio as save_audio
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if output_format in ("wav", "flac"):
-        sf.write(str(path), audio, sample_rate)
-        return
-    with BytesIO() as wav_file:
-        sf.write(wav_file, audio, sample_rate, format="wav")
-        wav_file.seek(0)
-        with open(path, "wb") as output_file:
-            wav2(wav_file, output_file, output_format)
+    save_audio(path, audio, sample_rate, output_format)
 
 
 def main(argv=None):

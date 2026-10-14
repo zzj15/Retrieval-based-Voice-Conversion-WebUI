@@ -94,17 +94,18 @@ class RVCStreamEngine:
         import librosa
         import numpy as np
         import torch
-        import torch.nn.functional as F
         import torchaudio.transforms as tat
 
         from configs.config import Config
         from infer import rtrvc
+        from infer.realtime_audio import mix_rms, sola_crossfade
         from tools.cuda_graph import run_cuda_graph
 
         self.librosa = librosa
         self.np = np
         self.torch = torch
-        self.F = F
+        self.mix_rms = mix_rms
+        self.sola_crossfade = sola_crossfade
         self.tat = tat
         self.run_cuda_graph = run_cuda_graph
 
@@ -174,7 +175,6 @@ class RVCStreamEngine:
                 rms_mix: float, threshold: float, f0_method: int):
         np = self.np
         torch = self.torch
-        F = self.F
         if len(audio) != self.block_frame:
             raise ValueError(f"block mismatch: worker={self.block_frame}, request={len(audio)}")
 
@@ -201,7 +201,7 @@ class RVCStreamEngine:
             indata = gated[self.zc // 2 :]
 
         self.input_wav[:-self.block_frame] = self.input_wav[self.block_frame:].clone()
-        self.input_wav[-self.block_frame:] = torch.from_numpy(indata).to(self.config.device)
+        self.input_wav[-indata.shape[0]:] = torch.from_numpy(indata).to(self.config.device)
         self.input_wav_res[:-self.block_frame_16k] = self.input_wav_res[self.block_frame_16k:].clone()
         resample_input = self.input_wav[-self.block_frame - 2 * self.zc :]
         resampled = self.run_cuda_graph(
@@ -229,28 +229,14 @@ class RVCStreamEngine:
             )
 
         if rms_mix < 1.0:
-            input_tail = self.input_wav[self.extra_frame :]
-            rms1 = self.librosa.feature.rms(
-                y=input_tail[: infer_wav.shape[0]].cpu().numpy(), frame_length=4 * self.zc, hop_length=self.zc
+            infer_wav = self.mix_rms(
+                self.input_wav[self.extra_frame :], infer_wav, self.zc, rms_mix
             )
-            rms1 = torch.from_numpy(rms1).to(self.config.device)
-            rms1 = F.interpolate(rms1.unsqueeze(0), size=infer_wav.shape[0] + 1, mode="linear", align_corners=True)[0, 0, :-1]
-            rms2 = self.librosa.feature.rms(
-                y=infer_wav.cpu().numpy(), frame_length=4 * self.zc, hop_length=self.zc
-            )
-            rms2 = torch.from_numpy(rms2).to(self.config.device)
-            rms2 = F.interpolate(rms2.unsqueeze(0), size=infer_wav.shape[0] + 1, mode="linear", align_corners=True)[0, 0, :-1]
-            rms2 = torch.maximum(rms2, torch.full_like(rms2, 1e-3))
-            infer_wav *= torch.pow(rms1 / rms2, 1.0 - rms_mix)
-
-        conv_input = infer_wav[None, None, : self.sola_buffer_frame + self.sola_search_frame]
-        cor_nom = F.conv1d(conv_input, self.sola_buffer[None, None, :])
-        cor_den = torch.sqrt(F.conv1d(conv_input**2, self.sola_den_kernel) + 1e-8)
-        sola_offset = int(torch.argmax(cor_nom[0, 0] / cor_den[0, 0]))
-        infer_wav = infer_wav[sola_offset:]
-        infer_wav[: self.sola_buffer_frame] *= self.fade_in_window
-        infer_wav[: self.sola_buffer_frame] += self.sola_buffer * self.fade_out_window
-        self.sola_buffer[:] = infer_wav[self.block_frame : self.block_frame + self.sola_buffer_frame]
+        infer_wav, _ = self.sola_crossfade(
+            infer_wav, self.sola_buffer, self.sola_den_kernel,
+            self.fade_in_window, self.fade_out_window,
+            self.block_frame, self.sola_search_frame,
+        )
         return infer_wav[: self.block_frame].float().cpu().numpy()
 
 

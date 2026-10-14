@@ -3,6 +3,8 @@ import ffmpeg
 import numpy as np
 import av
 import threading
+from io import BytesIO
+from pathlib import Path
 
 
 _USE_TORCHAUDIO_GPU = False
@@ -78,6 +80,22 @@ def wav2(i, o, format):
             out.close()
     finally:
         inp.close()
+
+
+def write_audio(path, audio, sample_rate, output_format):
+    """Save RVC output with the same format settings for CLI and batch inference."""
+    import soundfile as sf
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if output_format in ("wav", "flac"):
+        sf.write(str(path), audio, sample_rate)
+        return
+    with BytesIO() as wav_file:
+        sf.write(wav_file, audio, sample_rate, format="wav")
+        wav_file.seek(0)
+        with open(path, "wb") as output_file:
+            wav2(wav_file, output_file, output_format)
 
 
 def _probe_audio(file):
