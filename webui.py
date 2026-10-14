@@ -192,16 +192,6 @@ feature_gpus = "%s-%s" % (gpus, gpus) if gpus else ""
 default_training_f0_method = "rmvpe" if IS_GPU else "pm"
 
 
-class ToolButton(gr.Button, gr.components.FormComponent):
-    """Small button with single emoji as text, fits inside gradio forms"""
-
-    def __init__(self, **kwargs):
-        super().__init__(variant="tool", **kwargs)
-
-    def get_block_name(self):
-        return "button"
-
-
 weight_root = os.getenv("weight_root")
 weight_pymss_root = os.getenv("weight_pymss_root")
 outside_index_root = os.getenv("outside_index_root")
@@ -908,12 +898,12 @@ def run_preprocess_dataset(
         validate_preprocess_outputs(exp_dir)
 
 
-def preprocess_dataset(trainset_dir, exp_dir, sr, n_p, training_mode=None):
-    action, state = begin_train_task("数据切分")
+def run_train_task(name, runner, *args, **kwargs):
+    action, state = begin_train_task(name)
     if action == "busy":
         yield (
             format_status(
-                "数据切分",
+                name,
                 "等待中",
                 i18n("%s运行中，请先停止该任务") % i18n(state["name"]),
             ),
@@ -924,23 +914,28 @@ def preprocess_dataset(trainset_dir, exp_dir, sr, n_p, training_mode=None):
     final_info = None
     try:
         yield (
-            format_status("数据切分", "正在启动"),
+            format_status(name, "正在启动"),
             button_update(visible=False),
             button_update(visible=True),
         )
-        for info in run_preprocess_dataset(
-            trainset_dir, exp_dir, sr, n_p, state, training_mode=training_mode
-        ):
+        for info in runner(*args, state=state, **kwargs):
             yield info, button_update(visible=False), button_update(visible=True)
         if train_task_stopped(state):
-            final_info = format_status("数据切分", "已停止")
+            final_info = format_status(name, "已停止")
     except Exception:
-        final_info = format_status("数据切分", "失败", traceback.format_exc())
+        final_info = format_status(name, "失败", traceback.format_exc())
     finally:
         finish_train_task(state)
     if final_info is None:
-        final_info = format_status("数据切分", "已完成")
+        final_info = format_status(name, "已完成")
     yield final_info, button_update(visible=True), button_update(visible=False)
+
+
+def preprocess_dataset(trainset_dir, exp_dir, sr, n_p, training_mode=None):
+    yield from run_train_task(
+        "数据切分", run_preprocess_dataset, trainset_dir, exp_dir, sr, n_p,
+        training_mode=training_mode,
+    )
 
 
 def stop_preprocess_dataset():
@@ -1050,38 +1045,10 @@ def run_extract_f0_feature(
 
 
 def extract_f0_feature(gpus, n_p, f0method, if_f0, exp_dir, version19, gpus_rmvpe):
-    action, state = begin_train_task("特征提取")
-    if action == "busy":
-        yield (
-            format_status(
-                "特征提取",
-                "等待中",
-                i18n("%s运行中，请先停止该任务") % i18n(state["name"]),
-            ),
-            button_update(),
-            button_update(),
-        )
-        return
-    final_info = None
-    try:
-        yield (
-            format_status("特征提取", "正在启动"),
-            button_update(visible=False),
-            button_update(visible=True),
-        )
-        for info in run_extract_f0_feature(
-            gpus, n_p, f0method, if_f0, exp_dir, version19, gpus_rmvpe, state
-        ):
-            yield info, button_update(visible=False), button_update(visible=True)
-        if train_task_stopped(state):
-            final_info = format_status("特征提取", "已停止")
-    except Exception:
-        final_info = format_status("特征提取", "失败", traceback.format_exc())
-    finally:
-        finish_train_task(state)
-    if final_info is None:
-        final_info = format_status("特征提取", "已完成")
-    yield final_info, button_update(visible=True), button_update(visible=False)
+    yield from run_train_task(
+        "特征提取", run_extract_f0_feature,
+        gpus, n_p, f0method, if_f0, exp_dir, version19, gpus_rmvpe,
+    )
 
 
 def stop_extract_f0_feature():
@@ -1482,36 +1449,10 @@ def run_train_index(
 
 
 def train_index(exp_dir1, version19, training_mode=None):
-    action, state = begin_train_task("索引训练")
-    if action == "busy":
-        yield (
-            format_status(
-                "索引训练",
-                "等待中",
-                i18n("%s运行中，请先停止该任务") % i18n(state["name"]),
-            ),
-            button_update(),
-            button_update(),
-        )
-        return
-    final_info = None
-    try:
-        yield (
-            format_status("索引训练", "正在启动"),
-            button_update(visible=False),
-            button_update(visible=True),
-        )
-        for info in run_train_index(exp_dir1, version19, state, True, training_mode):
-            yield info, button_update(visible=False), button_update(visible=True)
-        if train_task_stopped(state):
-            final_info = format_status("索引训练", "已停止")
-    except Exception:
-        final_info = format_status("索引训练", "失败", traceback.format_exc())
-    finally:
-        finish_train_task(state)
-    if final_info is None:
-        final_info = format_status("索引训练", "已完成")
-    yield final_info, button_update(visible=True), button_update(visible=False)
+    yield from run_train_task(
+        "索引训练", run_train_index, exp_dir1, version19,
+        training_mode=training_mode,
+    )
 
 
 def stop_train_index():
