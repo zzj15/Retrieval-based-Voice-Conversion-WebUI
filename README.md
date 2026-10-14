@@ -164,6 +164,8 @@ NVIDIA 仍需先按上文安装匹配的 Torch/Torchaudio，再将命令中的 `
 
 ## 模型与运行目录
 
+训练音频旁的 `.spec.pt` 是可重建的频谱缓存。缓存会校验音频内容及采样率、FFT、hop、window 参数；同名音频被覆盖或参数改变后会自动重算。旧版本的纯张量缓存会在首次读取时重建一次，首次训练可能因此增加预处理时间。缓存通过临时文件和原子替换保存，避免多进程读到未写完的文件。
+
 WebUI 会自动创建运行目录。模型请从 [Hugging Face 模型仓库](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main) 下载，并保持以下路径：
 
 ```text

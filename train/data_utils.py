@@ -1,14 +1,10 @@
 import os
-import traceback
-import logging
-
-logger = logging.getLogger(__name__)
-
 import numpy as np
 import torch
 import torch.utils.data
 
 from train.mel_processing import spectrogram_torch
+from train.spec_cache import audio_signature, load_cached_spec, save_cached_spec
 from train.utils import load_filepaths_and_text, load_wav_to_torch
 
 
@@ -45,11 +41,12 @@ class _AudioDataset(torch.utils.data.Dataset):
 
         audio_norm = audio_norm.unsqueeze(0)
         spec_filename = filename.replace(".wav", ".spec.pt")
-        if os.path.exists(spec_filename):
-            try:
-                return torch.load(spec_filename), audio_norm
-            except:
-                logger.warning("%s %s", spec_filename, traceback.format_exc())
+        signature = audio_signature(
+            audio, sampling_rate, self.filter_length, self.hop_length, self.win_length
+        )
+        spec = load_cached_spec(spec_filename, signature)
+        if spec is not None:
+            return spec, audio_norm
         spec = spectrogram_torch(
             audio_norm,
             self.filter_length,
@@ -59,7 +56,7 @@ class _AudioDataset(torch.utils.data.Dataset):
             center=False,
         )
         spec = torch.squeeze(spec, 0)
-        torch.save(spec, spec_filename, _use_new_zipfile_serialization=False)
+        save_cached_spec(spec_filename, spec, signature)
         return spec, audio_norm
 
     def __getitem__(self, index):

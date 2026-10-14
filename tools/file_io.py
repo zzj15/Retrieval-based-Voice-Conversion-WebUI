@@ -1,6 +1,6 @@
 def read_text(path, errors="strict", newline=None):
     last_error = None
-    for encoding in (None, "utf8", "gbk"):
+    for encoding in ("utf8", None, "gbk"):
         try:
             kwargs = {"errors": "strict", "newline": newline}
             if encoding is not None:

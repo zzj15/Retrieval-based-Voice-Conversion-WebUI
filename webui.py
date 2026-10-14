@@ -292,7 +292,24 @@ def manifest_error_text(error):
 
 
 def experiment_path(exp_name):
-    return os.path.join(now_dir, "logs", str(exp_name or "").strip())
+    return os.path.join(now_dir, "logs", validate_experiment_name(exp_name))
+
+
+def validate_experiment_name(value):
+    name = str(value or "").strip()
+    if not name or name in (".", "..") or any(char in name for char in '/\\:\x00'):
+        raise ValueError("Experiment name must be a single, non-empty directory name")
+    return name
+
+
+def training_gpu_ids(value):
+    value = str(value or "").strip()
+    if value in ("", "-"):
+        return []
+    parts = value.split("-")
+    if not all(part.isdecimal() for part in parts):
+        raise ValueError("GPU IDs must be non-negative integers separated by '-'")
+    return [str(int(part)) for part in parts]
 
 
 def prepare_multispeaker_manifest(trainset_dir, exp_name):
@@ -764,6 +781,17 @@ def stop_train_task(name):
 def finish_train_task(state):
     global TRAIN_TASK
     with TRAIN_TASK_LOCK:
+        state["stop_requested"] = True
+        processes = list(state["processes"])
+    for process in processes:
+        if process.poll() is None:
+            kill_process_tree(process, state["name"], logger)
+    with TRAIN_TASK_LOCK:
+        state["processes"] = [
+            process for process in state["processes"] if process.poll() is None
+        ]
+        if state["processes"]:
+            raise RuntimeError("Training subprocess did not exit; retry stopping the task")
         if TRAIN_TASK is state:
             TRAIN_TASK = None
 
@@ -774,8 +802,11 @@ def train_task_stopped(state):
 
 
 def start_train_process(state, cmd):
-    kwargs = {"shell": True, "cwd": now_dir}
-    if "train/train.py" in cmd.replace("\\", "/"):
+    if not isinstance(cmd, (list, tuple)) or len(cmd) < 2:
+        raise TypeError("Training commands must be argument lists")
+    cmd = [str(value) for value in cmd]
+    kwargs = {"shell": False, "cwd": now_dir}
+    if cmd[1].replace("\\", "/").endswith("train/train.py"):
         training_env = os.environ.copy()
         training_env["RVC_CUDA_GRAPH"] = "0"
         kwargs["env"] = training_env
@@ -783,11 +814,11 @@ def start_train_process(state, cmd):
         kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         kwargs["start_new_session"] = True
-    logger.info("%s: %s", i18n("执行命令"), cmd)
+    logger.info("%s: %r", i18n("执行命令"), cmd)
     process = Popen(cmd, **kwargs)
     with TRAIN_TASK_LOCK:
         state["processes"].append(process)
-        stopped = state["stop_requested"]
+        stopped = state["stop_requested"] or TRAIN_TASK is not state
     if stopped:
         kill_process_tree(process, state["name"], logger)
     return process
@@ -830,7 +861,7 @@ def wait_train_processes(
         sleep(1)
     with TRAIN_TASK_LOCK:
         for process in processes:
-            if process in state["processes"]:
+            if process.poll() is not None and process in state["processes"]:
                 state["processes"].remove(process)
     if log_path:
         final_state = "已停止" if train_task_stopped(state) else "正在收尾"
@@ -849,6 +880,10 @@ def wait_train_processes(
 def run_preprocess_dataset(
     trainset_dir, exp_dir, sr, n_p, state, format_output=True, training_mode=None
 ):
+    exp_dir = validate_experiment_name(exp_dir)
+    n_p = int(n_p)
+    if n_p < 1:
+        raise ValueError("Preprocessing needs at least one worker")
     sr = sr_dict[sr]
     os.makedirs("%s/logs/%s" % (now_dir, exp_dir), exist_ok=True)
     if is_multispeaker_mode(training_mode):
@@ -856,22 +891,12 @@ def run_preprocess_dataset(
     log_path = "%s/logs/%s/preprocess.log" % (now_dir, exp_dir)
     with open(log_path, "w", encoding="utf8"):
         pass
-    manifest_arg = (
-        ' "%s/logs/%s/multispeaker_manifest.json"' % (now_dir, exp_dir)
-        if is_multispeaker_mode(training_mode)
-        else ""
-    )
-    cmd = '"%s" train/preprocess.py "%s" %s %s "%s/logs/%s" %s %.1f%s' % (
-        config.python_cmd,
-        trainset_dir,
-        sr,
-        n_p,
-        now_dir,
-        exp_dir,
-        config.noparallel,
-        config.preprocess_per,
-        manifest_arg,
-    )
+    cmd = [
+        config.python_cmd, "train/preprocess.py", trainset_dir, sr, n_p,
+        experiment_path(exp_dir), config.noparallel, "%.1f" % config.preprocess_per,
+    ]
+    if is_multispeaker_mode(training_mode):
+        cmd.append(os.path.join(experiment_path(exp_dir), "multispeaker_manifest.json"))
     extract_start_time = time.time()
     requested_workers = max(int(n_p), 1)
     actual_workers = 1 if config.noparallel else requested_workers
@@ -954,6 +979,12 @@ def run_extract_f0_feature(
     state,
     format_output=True,
 ):
+    exp_dir = validate_experiment_name(exp_dir)
+    n_p = int(n_p)
+    if n_p < 1:
+        raise ValueError("Feature extraction needs at least one worker")
+    rmvpe_devices = training_gpu_ids(gpus_rmvpe)
+    feature_gpus = training_gpu_ids(gpus)
     if f0method not in ("pm", "rmvpe"):
         raise ValueError(i18n("仅支持pm和rmvpe音高提取算法"))
     log_path = "%s/logs/%s/extract_f0_feature.log" % (now_dir, exp_dir)
@@ -964,36 +995,21 @@ def run_extract_f0_feature(
 
     if if_f0:
         processes = []
-        rmvpe_devices = [gpu for gpu in gpus_rmvpe.split("-") if gpu != ""]
         if f0method == "pm" or (
             f0method == "rmvpe" and not rmvpe_devices and not config.dml
         ):
-            cmd = (
-                '"%s" train/dataset/extract_f0.py cpu "%s/logs/%s" %s %s'
-                % (config.python_cmd, now_dir, exp_dir, n_p, f0method)
-            )
+            cmd = [config.python_cmd, "train/dataset/extract_f0.py", "cpu",
+                   experiment_path(exp_dir), n_p, f0method]
             processes.append(start_train_process(state, cmd))
         elif rmvpe_devices:
             count = len(rmvpe_devices)
             for index, gpu in enumerate(rmvpe_devices):
-                cmd = (
-                    '"%s" train/dataset/extract_f0.py cuda %s %s %s "%s/logs/%s" %s'
-                    % (
-                        config.python_cmd,
-                        count,
-                        index,
-                        gpu,
-                        now_dir,
-                        exp_dir,
-                        config.is_half,
-                    )
-                )
+                cmd = [config.python_cmd, "train/dataset/extract_f0.py", "cuda",
+                       count, index, gpu, experiment_path(exp_dir), config.is_half]
                 processes.append(start_train_process(state, cmd))
         else:
-            cmd = (
-                '"%s" train/dataset/extract_f0.py dml "%s/logs/%s"'
-                % (config.python_cmd, now_dir, exp_dir)
-            )
+            cmd = [config.python_cmd, "train/dataset/extract_f0.py", "dml",
+                   experiment_path(exp_dir)]
             processes.append(start_train_process(state, cmd))
         yield from wait_train_processes(
             state, processes, log_path, "F0提取", format_output
@@ -1004,38 +1020,17 @@ def run_extract_f0_feature(
         with open(log_path, "w", encoding="utf8"):
             pass
 
-    feature_gpus = [gpu for gpu in gpus.split("-") if gpu != ""]
     processes = []
     if feature_gpus:
         count = len(feature_gpus)
         for index, gpu in enumerate(feature_gpus):
-            cmd = (
-                '"%s" train/dataset/extract_hubert_feature.py %s %s %s %s "%s/logs/%s" %s %s'
-                % (
-                    config.python_cmd,
-                    config.device,
-                    count,
-                    index,
-                    gpu,
-                    now_dir,
-                    exp_dir,
-                    version19,
-                    config.is_half,
-                )
-            )
+            cmd = [config.python_cmd, "train/dataset/extract_hubert_feature.py",
+                   config.device, count, index, gpu, experiment_path(exp_dir),
+                   version19, config.is_half]
             processes.append(start_train_process(state, cmd))
     else:
-        cmd = (
-            '"%s" train/dataset/extract_hubert_feature.py %s 1 0 "%s/logs/%s" %s %s'
-            % (
-                config.python_cmd,
-                config.device,
-                now_dir,
-                exp_dir,
-                version19,
-                config.is_half,
-            )
-        )
+        cmd = [config.python_cmd, "train/dataset/extract_hubert_feature.py",
+               config.device, 1, 0, experiment_path(exp_dir), version19, config.is_half]
         processes.append(start_train_process(state, cmd))
     yield from wait_train_processes(
         state, processes, log_path, "HuBERT特征", format_output
@@ -1140,6 +1135,8 @@ def run_train_model(
     format_output=True,
     training_mode=None,
 ):
+    exp_dir1 = validate_experiment_name(exp_dir1)
+    gpus16 = "-".join(training_gpu_ids(gpus16))
     # 生成filelist
     exp_dir = "%s/logs/%s" % (now_dir, exp_dir1)
     os.makedirs(exp_dir, exist_ok=True)
@@ -1279,45 +1276,20 @@ def run_train_model(
             sort_keys=True,
         )
         f.write("\n")
+    cmd = [config.python_cmd, "train/train.py", "-e", exp_dir1, "-sr", sr2,
+           "-f0", int(bool(if_f0_3)), "-bs", batch_size12]
     if gpus16:
-        cmd = (
-            '"%s" train/train.py -e "%s" -sr %s -f0 %s -bs %s -g %s -te %s -se %s %s %s -l %s -c %s -sw %s -v %s'
-            % (
-                config.python_cmd,
-                exp_dir1,
-                sr2,
-                1 if if_f0_3 else 0,
-                batch_size12,
-                gpus16,
-                total_epoch11,
-                save_epoch10,
-                "-pg %s" % pretrained_G14 if pretrained_G14 != "" else "",
-                "-pd %s" % pretrained_D15 if pretrained_D15 != "" else "",
-                1 if if_save_latest13 == i18n("是") else 0,
-                1 if if_cache_gpu17 == i18n("是") else 0,
-                1 if if_save_every_weights18 == i18n("是") else 0,
-                version19,
-            )
-        )
-    else:
-        cmd = (
-            '"%s" train/train.py -e "%s" -sr %s -f0 %s -bs %s -te %s -se %s %s %s -l %s -c %s -sw %s -v %s'
-            % (
-                config.python_cmd,
-                exp_dir1,
-                sr2,
-                1 if if_f0_3 else 0,
-                batch_size12,
-                total_epoch11,
-                save_epoch10,
-                "-pg %s" % pretrained_G14 if pretrained_G14 != "" else "",
-                "-pd %s" % pretrained_D15 if pretrained_D15 != "" else "",
-                1 if if_save_latest13 == i18n("是") else 0,
-                1 if if_cache_gpu17 == i18n("是") else 0,
-                1 if if_save_every_weights18 == i18n("是") else 0,
-                version19,
-            )
-        )
+        cmd.extend(["-g", gpus16])
+    cmd.extend(["-te", total_epoch11, "-se", save_epoch10])
+    if pretrained_G14:
+        cmd.extend(["-pg", pretrained_G14])
+    if pretrained_D15:
+        cmd.extend(["-pd", pretrained_D15])
+    cmd.extend([
+        "-l", int(if_save_latest13 == i18n("是")),
+        "-c", int(if_cache_gpu17 == i18n("是")),
+        "-sw", int(if_save_every_weights18 == i18n("是")), "-v", version19,
+    ])
     logger.info("%s: %s", i18n("执行命令"), cmd)
     process = start_train_process(state, cmd)
     yield from wait_train_processes(
@@ -1419,6 +1391,7 @@ def stop_train_model():
 def run_train_index(
     exp_dir1, version19, state, format_output=True, training_mode=None
 ):
+    exp_dir1 = validate_experiment_name(exp_dir1)
     exp_dir = os.path.join(now_dir, "logs", exp_dir1)
     os.makedirs(exp_dir, exist_ok=True)
     log_path = os.path.join(exp_dir, "train_index.log")
@@ -1431,17 +1404,8 @@ def run_train_index(
         if training_mode
         else "auto"
     )
-    cmd = (
-        '"%s" train/train_index.py "%s" %s "%s" %s %s'
-        % (
-            config.python_cmd,
-            exp_dir1,
-            version19,
-            outside_index_root,
-            config.n_cpu,
-            index_mode,
-        )
-    )
+    cmd = [config.python_cmd, "train/train_index.py", exp_dir1, version19,
+           outside_index_root, config.n_cpu, index_mode]
     process = start_train_process(state, cmd)
     yield from wait_train_processes(
         state, [process], log_path, "索引训练", format_output

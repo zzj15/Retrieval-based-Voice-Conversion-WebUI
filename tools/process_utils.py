@@ -21,12 +21,14 @@ def kill_process_tree(process, process_name="", task_logger=None):
     pid = process.pid
     if os.name == "nt":
         try:
-            subprocess.run(
+            result = subprocess.run(
                 ["taskkill", "/t", "/f", "/pid", str(pid)],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 check=False,
             )
+            if result.returncode != 0:
+                process.terminate()
         except OSError:
             try:
                 process.terminate()
@@ -45,13 +47,21 @@ def kill_process_tree(process, process_name="", task_logger=None):
         except (OSError, ProcessLookupError):
             pass
 
+        own_group = process_group is not None and process_group != os.getpgrp()
         for _ in range(10):
-            if process.poll() is not None:
+            running = process.poll() is None
+            if own_group:
+                try:
+                    os.killpg(process_group, 0)
+                    running = True
+                except ProcessLookupError:
+                    running = False
+            if not running:
                 break
             time.sleep(0.1)
-        if process.poll() is None:
+        if own_group or process.poll() is None:
             try:
-                if process_group is not None and process_group != os.getpgrp():
+                if own_group:
                     os.killpg(process_group, signal.SIGKILL)
                 else:
                     os.kill(pid, signal.SIGKILL)
@@ -63,9 +73,12 @@ def kill_process_tree(process, process_name="", task_logger=None):
     except (OSError, ProcessLookupError, subprocess.TimeoutExpired):
         try:
             process.kill()
-        except (OSError, ProcessLookupError):
+            process.wait(timeout=5)
+        except (OSError, ProcessLookupError, subprocess.TimeoutExpired):
             pass
 
     log = task_logger or logger
-    log.info("%s process tree terminated (pid=%s)", process_name or "Child", pid)
-    return True
+    stopped = process.poll() is not None
+    log.info("%s process tree termination %s (pid=%s)",
+             process_name or "Child", "completed" if stopped else "failed", pid)
+    return stopped
