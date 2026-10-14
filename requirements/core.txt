@@ -1,5 +1,5 @@
 # Python 3.12 CLI inference and bundled source separation.
-# Combine with cpu.txt, cu118.txt or cu128.txt for Torch and the ONNX provider.
+# Combine with cpu.txt, cu118.txt or cu128.txt for the hardware backend.
 packaging>=24.0
 av>=15.1.0,<16
 faiss-cpu>=1.13.0,<2

@@ -90,7 +90,11 @@ python -m pip install --upgrade pip setuptools wheel
 
 The files above install all features: each includes `requirements/cpu.txt`, `cu118.txt` or `cu128.txt`, then `requirements/common.txt` aggregates the feature dependencies. Shared version constraints have one source.
 
+Linux CPU and Linux/Windows NVIDIA CUDA inference use PyTorch and do not require ONNX Runtime. `cpu.txt` installs the DirectML dependencies `torchvision` and `onnxruntime-directml` only on Windows, keeping the Torch 2.4.1 compatibility constraints. The matching Torch wheel supplies CUDA libraries: declared dependencies are installed on Linux, and DLLs are bundled on Windows. There is no need to install `onnxruntime-gpu` or pin a separate set of CUDA/cuDNN libraries.
+
 Source separation uses the bundled `tools.pymss` and `tools.pymss_core` packages. There is no need to install the PyPI `pymss` or `pymss-core` packages. The bundled code preserves DirectML compatibility changes; the published packages require Torch ≥ 2.7.1, which conflicts with DirectML's Torch 2.4.1. The CLI remains `python -m tools.pymss.cli`.
+
+VR model parameters are kept in `tools/pymss_core/resources/vr_modelparams/`; the separator reads this single resource set on every platform.
 
 #### CPU, AMD, Intel
 
