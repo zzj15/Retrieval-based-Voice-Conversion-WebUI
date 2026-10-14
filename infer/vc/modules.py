@@ -4,11 +4,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 import numpy as np
-import soundfile as sf
 import torch
-from io import BytesIO
 
-from infer.audio import load_audio, wav2
+from infer.audio import load_audio, write_audio
 from infer.checkpoint import build_synthesizer, load_checkpoint, normalize_speaker_info
 from infer.vc.pipeline import Pipeline
 from infer.vc.utils import *
@@ -311,28 +309,14 @@ class VC:
                 if opt and opt[0] is not None and opt[1] is not None:
                     try:
                         tgt_sr, audio_opt = opt
-                        if format1 in ["wav", "flac"]:
-                            sf.write(
-                                "%s/%s.%s"
-                                % (
-                                    opt_root,
-                                    os.path.splitext(os.path.basename(path))[0],
-                                    format1,
-                                ),
-                                audio_opt,
-                                tgt_sr,
-                            )
-                        else:
-                            path = "%s/%s.%s" % (
-                                opt_root,
-                                os.path.splitext(os.path.basename(path))[0],
-                                format1,
-                            )
-                            with BytesIO() as wavf:
-                                sf.write(wavf, audio_opt, tgt_sr, format="wav")
-                                wavf.seek(0, 0)
-                                with open(path, "wb") as outf:
-                                    wav2(wavf, outf, format1)
+                        output_path = "%s/%s.%s" % (
+                            opt_root,
+                            os.path.splitext(os.path.basename(path))[0],
+                            format1,
+                        )
+                        if format1 not in ("wav", "flac"):
+                            path = output_path
+                        write_audio(output_path, audio_opt, tgt_sr, format1)
                         success += 1
                     except Exception:
                         info = "%s\n%s" % (info, traceback.format_exc())
