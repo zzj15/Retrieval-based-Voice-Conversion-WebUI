@@ -2,7 +2,6 @@ import platform, os
 import ffmpeg
 import numpy as np
 import av
-from io import BytesIO
 import threading
 
 
@@ -81,21 +80,6 @@ def wav2(i, o, format):
         inp.close()
 
 
-def transcode_audio_file(input_path, output_path, format):
-    """Transcode a WAV path and remove partial compressed output on failure."""
-    output_path = os.fspath(output_path)
-    if os.path.exists(output_path):
-        os.remove(output_path)
-    try:
-        wav2(input_path, output_path, format)
-        if not os.path.isfile(output_path) or os.path.getsize(output_path) == 0:
-            raise RuntimeError("Audio transcoding produced no output: %s" % output_path)
-    except Exception:
-        if os.path.exists(output_path):
-            os.remove(output_path)
-        raise
-
-
 def _probe_audio(file):
     info = ffmpeg.probe(file, cmd="ffprobe")
     stream = next(
@@ -164,16 +148,13 @@ def _channel_first_tensor(audio):
     return audio
 
 
-def _format_audio_tensor(audio, force_mono=True, keep_on_device=False):
+def _format_audio_tensor(audio, force_mono=True):
     audio = _channel_first_tensor(audio)
     if force_mono:
         if audio.shape[0] > 1:
             audio = audio.mean(dim=0, keepdim=True)
         else:
             audio = audio[:1]
-    if keep_on_device:
-        audio = audio.to(device=_AUDIO_DEVICE, dtype=_AUDIO_DTYPE)
-        return audio.flatten() if force_mono else audio
     audio = audio.detach().to(device="cpu", dtype=_TORCH.float32).contiguous().numpy()
     return audio[0].flatten() if force_mono else audio
 
@@ -194,10 +175,10 @@ def _get_gpu_resampler(source_sr, target_sr):
     return transform
 
 
-def _resample_tensor_gpu(audio, source_sr, target_sr, force_mono=True, keep_on_device=False):
+def _resample_tensor_gpu(audio, source_sr, target_sr, force_mono=True):
     audio = _channel_first_tensor(audio)
     if source_sr == target_sr:
-        return _format_audio_tensor(audio, force_mono, keep_on_device)
+        return _format_audio_tensor(audio, force_mono)
     with _TORCH.inference_mode():
         audio = audio.to(device=_AUDIO_DEVICE, dtype=_AUDIO_DTYPE)
         if force_mono and audio.shape[0] > 1:
@@ -205,15 +186,13 @@ def _resample_tensor_gpu(audio, source_sr, target_sr, force_mono=True, keep_on_d
         elif force_mono:
             audio = audio[:1]
         audio = _get_gpu_resampler(source_sr, target_sr)(audio)
-        if keep_on_device:
-            return audio.flatten() if force_mono else audio
         audio = audio.detach().to(device="cpu", dtype=_TORCH.float32).contiguous().numpy()
         return audio[0].flatten() if force_mono else audio
 
 
-def _load_audio_torchaudio_gpu(file, sr, force_mono=True, keep_on_device=False):
+def _load_audio_torchaudio_gpu(file, sr, force_mono=True):
     audio, source_sr = _TORCHAUDIO.load(file)
-    return _resample_tensor_gpu(audio, source_sr, sr, force_mono, keep_on_device)
+    return _resample_tensor_gpu(audio, source_sr, sr, force_mono)
 
 
 def resample_audio(audio, source_sr, target_sr, force_mono=False, res_type=None):
@@ -221,9 +200,7 @@ def resample_audio(audio, source_sr, target_sr, force_mono=False, res_type=None)
     tensor = _channel_first_tensor(audio)
     if _USE_TORCHAUDIO_GPU:
         try:
-            return _resample_tensor_gpu(
-                tensor, source_sr, target_sr, force_mono, keep_on_device=False
-            )
+            return _resample_tensor_gpu(tensor, source_sr, target_sr, force_mono)
         except Exception:
             try:
                 _TORCH.cuda.empty_cache()
@@ -251,60 +228,6 @@ def resample_audio(audio, source_sr, target_sr, force_mono=False, res_type=None)
             **kwargs,
         )
     return array[0].flatten() if force_mono else array
-
-
-def resample_audio_tensor(audio, source_sr, target_sr, force_mono=False):
-    """Resample channel-first audio and keep the result on the selected GPU."""
-    if _USE_TORCHAUDIO_GPU:
-        try:
-            return _resample_tensor_gpu(
-                audio,
-                source_sr,
-                target_sr,
-                force_mono=force_mono,
-                keep_on_device=True,
-            )
-        except Exception:
-            try:
-                _TORCH.cuda.empty_cache()
-            except Exception:
-                pass
-    result = resample_audio(
-        audio,
-        source_sr,
-        target_sr,
-        force_mono=force_mono,
-    )
-    tensor = _TORCH.from_numpy(np.ascontiguousarray(result, dtype=np.float32))
-    if _USE_TORCHAUDIO_GPU:
-        tensor = tensor.to(device=_AUDIO_DEVICE, dtype=_AUDIO_DTYPE)
-    return tensor
-
-
-def load_audio_tensor(file, sr, force_mono=True):
-    """Load audio as a tensor; stereo mode returns channel-first data."""
-    file = clean_path(file)
-    if not _USE_TORCHAUDIO_GPU:
-        return _TORCH.from_numpy(_load_audio_ffmpeg(file, sr, force_mono))
-    try:
-        return _load_audio_torchaudio_gpu(
-            file, sr, force_mono=force_mono, keep_on_device=True
-        )
-    except Exception as torchaudio_error:
-        try:
-            audio, source_sr = _decode_audio_ffmpeg(file)
-            return _resample_tensor_gpu(
-                audio, source_sr, sr, force_mono=force_mono, keep_on_device=True
-            )
-        except Exception as ffmpeg_error:
-            try:
-                audio = _TORCH.from_numpy(_load_audio_ffmpeg(file, sr, force_mono))
-                return audio.to(device=_AUDIO_DEVICE, dtype=_AUDIO_DTYPE)
-            except Exception:
-                raise RuntimeError(
-                    "Failed to load audio with torchaudio (%s) and FFmpeg (%s)"
-                    % (torchaudio_error, ffmpeg_error)
-                ) from ffmpeg_error
 
 
 def load_audio(file, sr, force_mono=True):
